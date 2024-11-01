@@ -13,6 +13,9 @@ class Pickler:
     def encode_none(self) -> bytes:
         return NONE
 
+    def encode_bool(self, obj: bool) -> bytes:
+        return TRUE if obj else FALSE
+
 
 def encode_str(input_string: str):
     print("hello")
