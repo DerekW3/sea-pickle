@@ -1,5 +1,4 @@
-import pickle
-import pickletools
+from struct import pack
 
 # BOOL-LIKE TYPES
 NONE: bytes = b"N"
@@ -13,7 +12,7 @@ LONG_UNICODE: bytes = b"\x8d"
 
 
 class Pickler:
-    def __init__(self):
+    def __init__(self) -> None:
         print("Pickler prepared, starting now...")
 
     def encode_none(self) -> bytes:
@@ -23,15 +22,11 @@ class Pickler:
         return TRUE if obj else FALSE
 
     def encode_string(self, obj: str) -> bytes:
-        return TRUE
-
-
-def main():
-    pickled_str = pickle.dumps("This is a test string")
-
-    print(pickled_str)
-    pickletools.dis(pickled_str)
-
-
-if __name__ == "__main__":
-    main()
+        utf_string: bytes = obj.encode("utf-8", "surrogatepass")
+        length: int = len(utf_string)
+        if length < 256:
+            return SHORT_UNICODE + pack("<B", length) + utf_string
+        elif length > 0xFFFFFFFF:
+            return LONG_UNICODE + pack("<Q", length) + utf_string
+        else:
+            return UNICODE + pack("<I", length) + utf_string
