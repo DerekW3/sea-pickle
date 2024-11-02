@@ -1,3 +1,4 @@
+from itertools import islice
 from struct import pack
 from typing import Any
 
@@ -78,3 +79,26 @@ def encode_bytes(obj: bytes) -> bytes:
         return codes.BINBYTES8 + pack("<Q", n) + obj
     else:
         return codes.BINBYTES + pack("<I", n) + obj
+
+
+def add_batch(items: Any) -> bytes:
+    it = iter(items)
+
+    result = b""
+
+    while True:
+        temp = list(islice(it, 1000))
+
+        n = len(temp)
+
+        if n > 1:
+            result += codes.MARK
+            for itm in temp:
+                result += partial_dump(itm)
+            result += codes.APPENDS
+        elif n:
+            result += partial_dump(temp[0])
+            result += codes.APPEND
+
+        if n < 1000:
+            return result

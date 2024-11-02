@@ -21,3 +21,8 @@ class OPCODE:
     SHORT_BINBYTES = b"C"
     BINBYTES8 = b"\x8e"
     BINBYTES = b"B"
+
+    # ARRAY TYPES
+    MARK = b"("
+    APPENDS = b"e"
+    APPEND = b"a"
