@@ -102,3 +102,29 @@ def add_batch(items: Any) -> bytes:
 
         if n < 1000:
             return result
+
+
+def set_batch(items: dict[Any, Any]) -> bytes:
+    it = iter(items)
+
+    result = b""
+
+    while True:
+        temp = list(islice(it, 1000))
+
+        n = len(temp)
+
+        if n > 1:
+            result += codes.MARK
+            for key, value in temp:
+                result += partial_dump(key)
+                result += partial_dump(value)
+            result += codes.SETITEMS
+        elif n:
+            key, value = temp[0]
+            result += partial_dump(key)
+            result += partial_dump(value)
+            result += codes.SETITEM
+
+        if n < 1000:
+            return result

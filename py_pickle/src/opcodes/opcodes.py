@@ -26,3 +26,8 @@ class OPCODE:
     MARK = b"("
     APPENDS = b"e"
     APPEND = b"a"
+
+    # DICT TYPES
+    EMPTY_DICT = b"}"
+    SETITEM = b"s"
+    SETITEMS = b"u"
