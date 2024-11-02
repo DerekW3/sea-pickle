@@ -1,78 +1,80 @@
 from struct import pack
+from typing import Any
 
 from .opcodes.opcodes import OPCODE
 
+codes = OPCODE()
 
-class Pickler:
-    def __init__(self) -> None:
-        self.pickled = b""
-        self.byte_count: int = 0
-        self.codes = OPCODE()
-        print("Pickler prepared, starting now...")
 
-    def write(self, obj: bytes):
-        self.pickled += obj
-        self.byte_count = len(self.pickled)
+def partial_dump(obj: Any) -> bytes:
+    pickled_obj = b""
 
-    def encode_none(self):
-        self.write(self.codes.NONE)
+    pickled_obj += b"0"
 
-    def encode_bool(self, obj: bool):
-        self.write(self.codes.TRUE if obj else self.codes.FALSE)
+    return pickled_obj
 
-    def encode_string(self, obj: str):
-        utf_string: bytes = obj.encode("utf-8", "surrogatepass")
-        length: int = len(utf_string)
-        if length < 256:
-            self.write(self.codes.SHORT_UNICODE + pack("<B", length) + utf_string)
-        elif length > 0xFFFFFFFF:
-            self.write(self.codes.LONG_UNICODE + pack("<Q", length) + utf_string)
-        else:
-            self.write(self.codes.UNICODE + pack("<I", length) + utf_string)
 
-    def encode_float(self, obj: float):
-        self.write(self.codes.BINFLOAT + pack(">d", obj))
+def encode_none() -> bytes:
+    return codes.NONE
 
-    def encode_long(self, obj: int):
-        if obj >= 0:
-            if obj <= 0xFF:
-                self.write(self.codes.BININT1 + pack("<B", obj))
-                return
-            elif obj <= 0xFFFF:
-                self.write(self.codes.BININT2 + pack("<H", obj))
-                return
 
-        if -0x80000000 <= obj <= 0x7FFFFFFF:
-            self.write(self.codes.BININT + pack("<i", obj))
-            return
+def encode_bool(obj: bool) -> bytes:
+    return codes.TRUE if obj else codes.FALSE
 
-        encoded_long: bytes = b""
 
-        if obj != 0:
-            num_bytes: int = (obj.bit_length() >> 3) + 1
+def encode_string(obj: str) -> bytes:
+    utf_string: bytes = obj.encode("utf-8", "surrogatepass")
+    length: int = len(utf_string)
+    if length < 256:
+        return codes.SHORT_UNICODE + pack("<B", length) + utf_string
+    elif length > 0xFFFFFFFF:
+        return codes.LONG_UNICODE + pack("<Q", length) + utf_string
+    else:
+        return codes.UNICODE + pack("<I", length) + utf_string
 
-            encoded_long = obj.to_bytes(num_bytes, byteorder="little", signed=True)
 
-            if (
-                obj < 0
-                and num_bytes > 1
-                and (encoded_long[-1] == 0xFF and (encoded_long[-2] & 0x80) != 0)
-            ):
-                encoded_long = encoded_long[:-1]
+def encode_float(obj: float) -> bytes:
+    return codes.BINFLOAT + pack(">d", obj)
 
-        n = len(encoded_long)
 
-        if n < 256:
-            self.write(self.codes.LONG1 + pack("<B", n) + encoded_long)
-        else:
-            self.write(self.codes.LONG4 + pack("<i", n) + encoded_long)
+def encode_long(obj: int) -> bytes:
+    if obj >= 0:
+        if obj <= 0xFF:
+            return codes.BININT1 + pack("<B", obj)
+        elif obj <= 0xFFFF:
+            return codes.BININT2 + pack("<H", obj)
 
-    def encode_bytes(self, obj: bytes):
-        n = len(obj)
+    if -0x80000000 <= obj <= 0x7FFFFFFF:
+        return codes.BININT + pack("<i", obj)
 
-        if n < 256:
-            self.write(self.codes.SHORT_BINBYTES + pack("<B", n) + obj)
-        elif n > 0xFFFFFFFF:
-            self.write(self.codes.BINBYTES8 + pack("<Q", n) + obj)
-        else:
-            self.write(self.codes.BINBYTES + pack("<I", n) + obj)
+    encoded_long: bytes = b""
+
+    if obj != 0:
+        num_bytes: int = (obj.bit_length() >> 3) + 1
+
+        encoded_long = obj.to_bytes(num_bytes, byteorder="little", signed=True)
+
+        if (
+            obj < 0
+            and num_bytes > 1
+            and (encoded_long[-1] == 0xFF and (encoded_long[-2] & 0x80) != 0)
+        ):
+            encoded_long = encoded_long[:-1]
+
+    n = len(encoded_long)
+
+    if n < 256:
+        return codes.LONG1 + pack("<B", n) + encoded_long
+    else:
+        return codes.LONG4 + pack("<i", n) + encoded_long
+
+
+def encode_bytes(obj: bytes) -> bytes:
+    n = len(obj)
+
+    if n < 256:
+        return codes.SHORT_BINBYTES + pack("<B", n) + obj
+    elif n > 0xFFFFFFFF:
+        return codes.BINBYTES8 + pack("<Q", n) + obj
+    else:
+        return codes.BINBYTES + pack("<I", n) + obj
