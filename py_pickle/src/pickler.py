@@ -30,6 +30,9 @@ class Pickler:
         else:
             self.write(self.codes.UNICODE + pack("<I", length) + utf_string)
 
+    def encode_float(self, obj: float):
+        self.write(self.codes.BINFLOAT + pack(">d", obj))
+
     def encode_long(self, obj: int):
         if obj >= 0:
             if obj <= 0xFF:

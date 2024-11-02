@@ -15,6 +15,7 @@ class OPCODE:
     BININT2 = b"K"
     LONG1 = b"\x8a"
     LONG4 = b"\x8b"
+    BINFLOAT = b"G"
 
     # BYTES TYPES
     SHORT_BINBYTES = b"C"
