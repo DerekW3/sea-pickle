@@ -13,5 +13,5 @@ class OPCODE:
     BININT = b"J"
     BININT1 = b"K"
     BININT2 = b"K"
-    INT = b"I"
-    LONG = b"L"
+    LONG1 = b"\x8a"
+    LONG4 = b"\x8b"

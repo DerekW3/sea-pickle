@@ -1,41 +1,66 @@
 from struct import pack
+from typing import Any
 
-# BOOL-LIKE TYPES
-NONE: bytes = b"N"
-TRUE: bytes = b"\x88"
-FALSE: bytes = b"\x89"
-
-# STRING TYPES
-SHORT_UNICODE: bytes = b"\x8c"
-UNICODE: bytes = b"X"
-LONG_UNICODE: bytes = b"\x8d"
+from .opcodes.opcodes import OPCODE
 
 
 class Pickler:
     def __init__(self) -> None:
         self.byte_count: int = 0
+        self.codes = OPCODE()
         print("Pickler prepared, starting now...")
+
+    def pack_n_serve(self, pack_arg: str, bin_code: bytes, obj: Any) -> bytes:
+        packed: bytes = pack(pack_arg, obj)
+        concat: bytes = bin_code + packed
+        self.byte_count += len(concat)
+        return concat
 
     def encode_none(self) -> bytes:
         self.byte_count += 1
-        return NONE
+        return self.codes.NONE
 
     def encode_bool(self, obj: bool) -> bytes:
         self.byte_count += 1
-        return TRUE if obj else FALSE
+        return self.codes.TRUE if obj else self.codes.FALSE
 
     def encode_string(self, obj: str) -> bytes:
         utf_string: bytes = obj.encode("utf-8", "surrogatepass")
         length: int = len(utf_string)
         if length < 256:
-            packed: bytes = pack("<B", length)
-            concat: bytes = SHORT_UNICODE + packed + utf_string
+            return self.pack_n_serve("<B", self.codes.SHORT_UNICODE, length)
         elif length > 0xFFFFFFFF:
-            packed: bytes = pack("<Q", length)
-            concat: bytes = LONG_UNICODE + packed + utf_string
+            return self.pack_n_serve("<Q", self.codes.LONG_UNICODE, length)
         else:
-            packed: bytes = pack("<I", length)
-            concat: bytes = UNICODE + packed + utf_string
+            return self.pack_n_serve("<I", self.codes.UNICODE, length)
 
-        self.byte_count += len(concat)
-        return concat
+    def encode_long(self, obj: int) -> bytes:
+        if obj >= 0:
+            if obj <= 0xFF:
+                return self.pack_n_serve("<B", self.codes.BININT1, obj)
+            elif obj <= 0xFFFF:
+                return self.pack_n_serve("<H", self.codes.BININT2, obj)
+
+        if -0x80000000 <= obj <= 0x7FFFFFFF:
+            return self.pack_n_serve("<i", self.codes.BININT, obj)
+
+        encoded_long: bytes = b""
+
+        if obj != 0:
+            num_bytes: int = (obj.bit_length() >> 3) + 1
+
+            encoded_long = obj.to_bytes(num_bytes, byteorder="little", signed=True)
+
+            if (
+                obj < 0
+                and num_bytes > 1
+                and (encoded_long[-1] == 0xFF and (encoded_long[-2] & 0x80) != 0)
+            ):
+                encoded_long = encoded_long[:-1]
+
+        n = len(encoded_long)
+
+        if n < 256:
+            return self.pack_n_serve("<B", self.codes.LONG1, n) + encoded_long
+        else:
+            return self.pack_n_serve("<i", self.codes.LONG4, n) + encoded_long
