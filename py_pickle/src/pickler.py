@@ -13,20 +13,29 @@ LONG_UNICODE: bytes = b"\x8d"
 
 class Pickler:
     def __init__(self) -> None:
+        self.byte_count: int = 0
         print("Pickler prepared, starting now...")
 
     def encode_none(self) -> bytes:
+        self.byte_count += 1
         return NONE
 
     def encode_bool(self, obj: bool) -> bytes:
+        self.byte_count += 1
         return TRUE if obj else FALSE
 
     def encode_string(self, obj: str) -> bytes:
         utf_string: bytes = obj.encode("utf-8", "surrogatepass")
         length: int = len(utf_string)
         if length < 256:
-            return SHORT_UNICODE + pack("<B", length) + utf_string
+            packed: bytes = pack("<B", length)
+            concat: bytes = SHORT_UNICODE + packed + utf_string
         elif length > 0xFFFFFFFF:
-            return LONG_UNICODE + pack("<Q", length) + utf_string
+            packed: bytes = pack("<Q", length)
+            concat: bytes = LONG_UNICODE + packed + utf_string
         else:
-            return UNICODE + pack("<I", length) + utf_string
+            packed: bytes = pack("<I", length)
+            concat: bytes = UNICODE + packed + utf_string
+
+        self.byte_count += len(concat)
+        return concat
