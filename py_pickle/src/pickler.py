@@ -63,3 +63,13 @@ class Pickler:
             self.write(self.codes.LONG1 + pack("<B", n) + encoded_long)
         else:
             self.write(self.codes.LONG4 + pack("<i", n) + encoded_long)
+
+    def encode_bytes(self, obj: bytes):
+        n = len(obj)
+
+        if n < 256:
+            self.write(self.codes.SHORT_BINBYTES + pack("<B", n) + obj)
+        elif n > 0xFFFFFFFF:
+            self.write(self.codes.BINBYTES8 + pack("<Q", n) + obj)
+        else:
+            self.write(self.codes.BINBYTES + pack("<I", n) + obj)
