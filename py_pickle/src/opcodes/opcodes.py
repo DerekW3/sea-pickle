@@ -38,3 +38,6 @@ class OPCODE:
 
     # LIST TYPES
     EMPTY_LIST = b"]"
+
+    # SET TYPES
+    EMPTY_SET = b"\x8f"
