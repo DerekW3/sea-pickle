@@ -1,42 +1,43 @@
 from itertools import islice
 from struct import pack
-from typing import Any
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 from .opcodes.opcodes import OPCODE
 
 codes = OPCODE()
 
 
-def partial_dump(obj: Any) -> bytes:
+def partial_dump(obj: Any, memory: Optional[Dict[Any, Any]] = None) -> bytes:
     pickled_obj = b""
 
-    memo: dict[Any, Any] = {}
+    if memory is None:
+        memory = {}
 
     if obj is None:
         pickled_obj += encode_none()
     elif isinstance(obj, bool):
         pickled_obj += encode_bool(obj)
     elif isinstance(obj, str):
-        pickled_obj += encode_string(memo, obj)
+        pickled_obj += encode_string(memory, obj)
     elif isinstance(obj, float):
         pickled_obj += encode_float(obj)
     elif isinstance(obj, int):
         pickled_obj += encode_long(obj)
     elif isinstance(obj, bytes):
-        pickled_obj += encode_bytes(memo, obj)
+        pickled_obj += encode_bytes(memory, obj)
     elif isinstance(obj, bytearray):
         pickled_obj += encode_bytearray(obj)
     elif isinstance(obj, tuple):
-        pickled_obj += encode_tuple(memo, obj)  # type: ignore
+        pickled_obj += encode_tuple(memory, cast(Tuple[Any, ...], obj))
     elif isinstance(obj, list):
-        pickled_obj += encode_list(memo, obj)  # type: ignore
-    elif isinstance(obj, dict):
-        pickled_obj += encode_dict(memo, obj)  # type: ignore
+        pickled_obj += encode_list(memory, cast(List[Any], obj))
+    elif isinstance(obj, Dict):
+        pickled_obj += encode_Dict(memory, cast(Dict[Any, Any], obj))
 
     return pickled_obj
 
 
-def memoize(memory: dict[Any, Any], obj: Any) -> bytes:
+def memoize(memory: Dict[Any, Any], obj: Any) -> bytes:
     memory[id(obj)] = len(memory), obj
 
     return codes.MEMO
@@ -57,7 +58,7 @@ def encode_bool(obj: bool) -> bytes:
     return codes.TRUE if obj else codes.FALSE
 
 
-def encode_string(memory: dict[Any, Any], obj: str) -> bytes:
+def encode_string(memory: Dict[Any, Any], obj: str) -> bytes:
     res = b""
     utf_string: bytes = obj.encode("utf-8", "surrogatepass")
     length: int = len(utf_string)
@@ -109,7 +110,7 @@ def encode_long(obj: int) -> bytes:
         return codes.LONG4 + pack("<i", n) + encoded_long
 
 
-def encode_bytes(memory: dict[Any, Any], obj: bytes) -> bytes:
+def encode_bytes(memory: Dict[Any, Any], obj: bytes) -> bytes:
     res = b""
     n = len(obj)
 
@@ -178,14 +179,14 @@ def set_batch(items: Any) -> bytes:
             return result
 
 
-def encode_tuple(memory: dict[Any, Any], obj: tuple[Any]) -> bytes:
+def encode_tuple(memory: Dict[Any, Any], obj: Tuple[Any, ...]) -> bytes:
     res = b""
 
     if not obj:
         res += codes.EMPTY_TUPLE
 
     if id(obj) in memory:
-        return memory[id(obj)]
+        return get(memory[id(obj)][0])
 
     for itm in obj:
         res += partial_dump(itm)
@@ -204,7 +205,7 @@ def encode_tuple(memory: dict[Any, Any], obj: tuple[Any]) -> bytes:
     return res
 
 
-def encode_list(memory: dict[Any, Any], obj: list[Any]) -> bytes:
+def encode_list(memory: Dict[Any, Any], obj: List[Any]) -> bytes:
     res = b""
 
     res += codes.EMPTY_LIST
@@ -216,7 +217,7 @@ def encode_list(memory: dict[Any, Any], obj: list[Any]) -> bytes:
     return res
 
 
-def encode_dict(memory: dict[Any, Any], obj: dict[Any, Any]) -> bytes:
+def encode_Dict(memory: Dict[Any, Any], obj: Dict[Any, Any]) -> bytes:
     res = b""
 
     res += codes.EMPTY_DICT
