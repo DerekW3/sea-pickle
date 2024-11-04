@@ -59,15 +59,20 @@ def encode_bool(obj: bool) -> bytes:
     return codes.TRUE if obj else codes.FALSE
 
 
-def encode_string(obj: str) -> bytes:
+def encode_string(memory: dict[Any, Any], obj: str) -> bytes:
+    res = b""
     utf_string: bytes = obj.encode("utf-8", "surrogatepass")
     length: int = len(utf_string)
     if length < 256:
-        return codes.SHORT_UNICODE + pack("<B", length) + utf_string
+        res += codes.SHORT_UNICODE + pack("<B", length) + utf_string
     elif length > 0xFFFFFFFF:
-        return codes.LONG_UNICODE + pack("<Q", length) + utf_string
+        res += codes.LONG_UNICODE + pack("<Q", length) + utf_string
     else:
-        return codes.UNICODE + pack("<I", length) + utf_string
+        res += codes.UNICODE + pack("<I", length) + utf_string
+
+    res += memoize(memory, obj)
+
+    return res
 
 
 def encode_float(obj: float) -> bytes:
