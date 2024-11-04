@@ -81,6 +81,10 @@ def encode_bytes(obj: bytes) -> bytes:
         return codes.BINBYTES + pack("<I", n) + obj
 
 
+def encode_bytearray(obj: bytearray) -> bytes:
+    return codes.BYTEARRAY + pack("<Q", len(obj)) + obj
+
+
 def add_batch(items: Any) -> bytes:
     it = iter(items)
 
