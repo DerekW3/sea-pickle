@@ -8,6 +8,7 @@ class OPCODE:
     SHORT_UNICODE: bytes = b"\x8c"
     UNICODE: bytes = b"X"
     LONG_UNICODE: bytes = b"\x8d"
+    MEMO: bytes = b"\x94"
 
     # NUMERIC TYPES
     BININT = b"J"

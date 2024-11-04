@@ -120,10 +120,8 @@ def add_batch(items: Any) -> bytes:
             result += codes.MARK
             for itm in temp:
                 result += partial_dump(itm)
-            result += codes.APPENDS
         elif n:
             result += partial_dump(temp[0])
-            result += codes.APPEND
 
         if n < 1000:
             return result
@@ -144,12 +142,10 @@ def set_batch(items: Any) -> bytes:
             for key, value in temp:
                 result += partial_dump(key)
                 result += partial_dump(value)
-            result += codes.SETITEMS
         elif n:
             key, value = temp[0]
             result += partial_dump(key)
             result += partial_dump(value)
-            result += codes.SETITEM
 
         if n < 1000:
             return result
@@ -181,8 +177,7 @@ def encode_list(obj: list[Any]) -> bytes:
 def encode_dict(obj: dict[Any, Any]) -> bytes:
     res = b""
 
-    if not obj:
-        res += codes.EMPTY_DICT
+    res += codes.EMPTY_DICT + codes.MEMO
 
     res += set_batch(obj.items())
 
