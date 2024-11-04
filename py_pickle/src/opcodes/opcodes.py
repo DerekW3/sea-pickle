@@ -36,4 +36,5 @@ class OPCODE:
     # TUPLE TYPES
     EMPTY_TUPLE = b")"
 
-    # 
+    # LIST TYPES
+    EMPTY_LIST = b"]"
