@@ -108,7 +108,7 @@ def add_batch(items: Any) -> bytes:
             return result
 
 
-def set_batch(items: dict[Any, Any]) -> bytes:
+def set_batch(items: Any) -> bytes:
     it = iter(items)
 
     result = b""
@@ -156,3 +156,13 @@ def encode_list(obj: list[Any]) -> bytes:
 
     return res
 
+
+def encode_dict(obj: dict[Any, Any]) -> bytes:
+    res = b""
+
+    if not obj:
+        res += codes.EMPTY_DICT
+
+    res += set_batch(obj.items())
+
+    return res
