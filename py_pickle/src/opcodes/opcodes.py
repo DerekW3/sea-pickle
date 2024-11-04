@@ -32,3 +32,8 @@ class OPCODE:
     EMPTY_DICT = b"}"
     SETITEM = b"s"
     SETITEMS = b"u"
+
+    # TUPLE TYPES
+    EMPTY_TUPLE = b")"
+
+    # 

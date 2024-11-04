@@ -132,3 +132,15 @@ def set_batch(items: dict[Any, Any]) -> bytes:
 
         if n < 1000:
             return result
+
+
+def encode_tuple(obj: tuple[Any]) -> bytes:
+    res = b""
+
+    if not obj:
+        res += codes.EMPTY_TUPLE
+
+    for itm in obj:
+        res += partial_dump(itm)
+
+    return res
