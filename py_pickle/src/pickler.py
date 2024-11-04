@@ -10,7 +10,28 @@ codes = OPCODE()
 def partial_dump(obj: Any) -> bytes:
     pickled_obj = b""
 
-    pickled_obj += b"0"
+    if obj is None:
+        pickled_obj += encode_none()
+    elif isinstance(obj, bool):
+        pickled_obj += encode_bool(obj)
+    elif isinstance(obj, str):
+        pickled_obj += encode_string(obj)
+    elif isinstance(obj, float):
+        pickled_obj += encode_float(obj)
+    elif isinstance(obj, int):
+        pickled_obj += encode_long(obj)
+    elif isinstance(obj, bytes):
+        pickled_obj += encode_bytes(obj)
+    elif isinstance(obj, bytearray):
+        pickled_obj += encode_bytearray(obj)
+    elif isinstance(obj, tuple):
+        pickled_obj += encode_tuple(obj)  # type: ignore
+    elif isinstance(obj, list):
+        pickled_obj += encode_list(obj)  # type: ignore
+    elif isinstance(obj, dict):
+        pickled_obj += encode_dict(obj)  # type: ignore
+    elif isinstance(obj, set):
+        pickled_obj += encode_set(obj)  # type: ignore
 
     return pickled_obj
 
