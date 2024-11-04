@@ -207,10 +207,12 @@ def encode_list(memory: dict[Any, Any], obj: list[Any]) -> bytes:
     return res
 
 
-def encode_dict(obj: dict[Any, Any]) -> bytes:
+def encode_dict(memory: dict[Any, Any], obj: dict[Any, Any]) -> bytes:
     res = b""
 
-    res += codes.EMPTY_DICT + codes.MEMO
+    res += codes.EMPTY_DICT
+
+    res += memoize(memory, obj)
 
     res += set_batch(obj.items())
 
