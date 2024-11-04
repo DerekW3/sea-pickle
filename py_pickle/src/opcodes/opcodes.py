@@ -1,8 +1,10 @@
 class OPCODE:
-    # BOOL-LIKE TYPES
     MEMO: bytes = b"\x94"
     POP: bytes = b"0"
+    BINGET: bytes = b"h"
+    LONG_BINGET: bytes = b"j"
 
+    # BOOL-LIKE TYPES
     NONE: bytes = b"N"
     TRUE: bytes = b"\x88"
     FALSE: bytes = b"\x89"
@@ -38,7 +40,9 @@ class OPCODE:
 
     # TUPLE TYPES
     EMPTY_TUPLE = b")"
-    TUPLE = b"t"
+    TUPLE1 = b"\x85"
+    TUPLE2 = b"\x86"
+    TUPLE3 = b"\x87"
 
     # LIST TYPES
     EMPTY_LIST = b"]"

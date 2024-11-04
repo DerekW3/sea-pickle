@@ -42,6 +42,13 @@ def memoize(memory: dict[Any, Any], obj: Any) -> bytes:
     return codes.MEMO
 
 
+def get(idx: int) -> bytes:
+    if idx < 256:
+        return codes.BINGET + pack("<B", idx)
+    else:
+        return codes.LONG_BINGET + pack("<I", idx)
+
+
 def encode_none() -> bytes:
     return codes.NONE
 
@@ -180,13 +187,17 @@ def encode_tuple(memory: dict[Any, Any], obj: tuple[Any]) -> bytes:
     if id(obj) in memory:
         return memory[id(obj)]
 
-    if len(obj) <= 3:
-        res += codes.MARK
-
     for itm in obj:
         res += partial_dump(itm)
 
-    res += codes.TUPLE
+    if len(obj) <= 3:
+        match len(obj):
+            case 1:
+                res += codes.TUPLE1
+            case 2:
+                res += codes.TUPLE2
+            case _:
+                res += codes.TUPLE3
 
     res += memoize(memory, obj)
 
@@ -196,7 +207,7 @@ def encode_tuple(memory: dict[Any, Any], obj: tuple[Any]) -> bytes:
 def encode_list(memory: dict[Any, Any], obj: list[Any]) -> bytes:
     res = b""
 
-    res += codes.EMPTY_TUPLE
+    res += codes.EMPTY_LIST
 
     res += memoize(memory, obj)
 
