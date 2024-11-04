@@ -106,15 +106,20 @@ def encode_long(obj: int) -> bytes:
         return codes.LONG4 + pack("<i", n) + encoded_long
 
 
-def encode_bytes(obj: bytes) -> bytes:
+def encode_bytes(memory: dict[Any, Any], obj: bytes) -> bytes:
+    res = b""
     n = len(obj)
 
     if n < 256:
-        return codes.SHORT_BINBYTES + pack("<B", n) + obj
+        res += codes.SHORT_BINBYTES + pack("<B", n) + obj
     elif n > 0xFFFFFFFF:
-        return codes.BINBYTES8 + pack("<Q", n) + obj
+        res += codes.BINBYTES8 + pack("<Q", n) + obj
     else:
-        return codes.BINBYTES + pack("<I", n) + obj
+        res += codes.BINBYTES + pack("<I", n) + obj
+
+    res += memoize(memory, obj)
+
+    return res
 
 
 def encode_bytearray(obj: bytearray) -> bytes:
