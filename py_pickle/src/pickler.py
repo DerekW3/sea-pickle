@@ -195,10 +195,12 @@ def encode_tuple(memory: dict[Any, Any], obj: tuple[Any]) -> bytes:
     return res
 
 
-def encode_list(obj: list[Any]) -> bytes:
+def encode_list(memory: dict[Any, Any], obj: list[Any]) -> bytes:
     res = b""
 
     res += codes.EMPTY_TUPLE
+
+    res += memoize(memory, obj)
 
     res += add_batch(obj)
 
