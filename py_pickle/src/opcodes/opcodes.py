@@ -1,5 +1,8 @@
 class OPCODE:
     # BOOL-LIKE TYPES
+    MEMO: bytes = b"\x94"
+    POP: bytes = b"0"
+
     NONE: bytes = b"N"
     TRUE: bytes = b"\x88"
     FALSE: bytes = b"\x89"
@@ -8,9 +11,6 @@ class OPCODE:
     SHORT_UNICODE: bytes = b"\x8c"
     UNICODE: bytes = b"X"
     LONG_UNICODE: bytes = b"\x8d"
-    MEMO: bytes = b"\x94"
-    BINGET: bytes = b"h"
-    LONG_BINGET: bytes = b"r"
 
     # NUMERIC TYPES
     BININT = b"J"
@@ -38,6 +38,7 @@ class OPCODE:
 
     # TUPLE TYPES
     EMPTY_TUPLE = b")"
+    TUPLE = b"t"
 
     # LIST TYPES
     EMPTY_LIST = b"]"
