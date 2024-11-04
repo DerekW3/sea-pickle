@@ -166,8 +166,7 @@ def encode_tuple(obj: tuple[Any]) -> bytes:
 def encode_list(obj: list[Any]) -> bytes:
     res = b""
 
-    if not obj:
-        res += codes.EMPTY_TUPLE
+    res += codes.EMPTY_TUPLE
 
     res += add_batch(obj)
 
