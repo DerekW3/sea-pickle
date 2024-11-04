@@ -217,22 +217,3 @@ def encode_dict(memory: dict[Any, Any], obj: dict[Any, Any]) -> bytes:
     res += set_batch(obj.items())
 
     return res
-
-
-def encode_set(obj: set[Any]) -> bytes:
-    res = b""
-
-    res += codes.EMPTY_SET
-
-    it = iter(obj)
-    while True:
-        batch = list(islice(it, 1000))
-
-        n = len(batch)
-
-        if n > 0:
-            res += codes.MARK
-            for itm in batch:
-                res += partial_dump(itm)
-        if n < 1000:
-            return res
