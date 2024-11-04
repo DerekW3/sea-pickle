@@ -13,6 +13,9 @@ def partial_dump(obj: Any, memory: Optional[Dict[Any, Any]] = None) -> bytes:
     if memory is None:
         memory = {}
 
+    if id(obj) in memory:
+        return get(memory[id(obj)][0])
+
     if obj is None:
         pickled_obj += encode_none()
     elif isinstance(obj, bool):
@@ -130,7 +133,7 @@ def encode_bytearray(obj: bytearray) -> bytes:
     return codes.BYTEARRAY + pack("<Q", len(obj)) + obj
 
 
-def add_batch(items: Any) -> bytes:
+def add_batch(memory: Dict[Any, Any], items: Any) -> bytes:
     it = iter(items)
 
     result = b""
@@ -143,17 +146,17 @@ def add_batch(items: Any) -> bytes:
         if n > 1:
             result += codes.MARK
             for itm in temp:
-                result += partial_dump(itm)
+                result += partial_dump(itm, memory)
             result += codes.APPENDS
         elif n:
-            result += partial_dump(temp[0])
+            result += partial_dump(temp[0], memory)
             result += codes.APPEND
 
         if n < 1000:
             return result
 
 
-def set_batch(items: Any) -> bytes:
+def set_batch(memory: Dict[Any, Any], items: Any) -> bytes:
     it = iter(items)
 
     result = b""
@@ -166,13 +169,13 @@ def set_batch(items: Any) -> bytes:
         if n > 1:
             result += codes.MARK
             for key, value in temp:
-                result += partial_dump(key)
-                result += partial_dump(value)
+                result += partial_dump(key, memory)
+                result += partial_dump(value, memory)
             result += codes.SETITEMS
         elif n:
             key, value = temp[0]
-            result += partial_dump(key)
-            result += partial_dump(value)
+            result += partial_dump(key, memory)
+            result += partial_dump(value, memory)
             result += codes.SETITEM
 
         if n < 1000:
@@ -212,7 +215,7 @@ def encode_list(memory: Dict[Any, Any], obj: List[Any]) -> bytes:
 
     res += memoize(memory, obj)
 
-    res += add_batch(obj)
+    res += add_batch(memory, obj)
 
     return res
 
@@ -224,6 +227,6 @@ def encode_Dict(memory: Dict[Any, Any], obj: Dict[Any, Any]) -> bytes:
 
     res += memoize(memory, obj)
 
-    res += set_batch(obj.items())
+    res += set_batch(memory, obj.items())
 
     return res
