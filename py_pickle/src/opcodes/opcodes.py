@@ -9,6 +9,8 @@ class OPCODE:
     UNICODE: bytes = b"X"
     LONG_UNICODE: bytes = b"\x8d"
     MEMO: bytes = b"\x94"
+    BINGET: bytes = b"h"
+    LONG_BINGET: bytes = b"r"
 
     # NUMERIC TYPES
     BININT = b"J"

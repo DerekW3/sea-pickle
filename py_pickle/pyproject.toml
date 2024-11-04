@@ -5,7 +5,9 @@ description = "Python implementation of a faster pickle protocol"
 authors = [
     { name = "DerekW3", email = "92753567+DerekW3@users.noreply.github.com" },
 ]
-dependencies = ["pytest>=8.3.3"]
+dependencies = [
+    "pytest>=8.3.3",
+]
 readme = "README.md"
 requires-python = ">= 3.8"
 

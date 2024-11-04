@@ -10,6 +10,8 @@ codes = OPCODE()
 def partial_dump(obj: Any) -> bytes:
     pickled_obj = b""
 
+    memo = {}
+
     if obj is None:
         pickled_obj += encode_none()
     elif isinstance(obj, bool):
@@ -34,6 +36,19 @@ def partial_dump(obj: Any) -> bytes:
         pickled_obj += encode_set(obj)  # type: ignore
 
     return pickled_obj
+
+
+def memoize(memory: dict[Any, Any], obj: Any) -> bytes:
+    memory[id(obj)] = len(memory), obj
+
+    return codes.MEMO
+
+
+def get(idx: int) -> bytes:
+    if idx < 256:
+        return codes.BINGET + pack("<B", idx)
+    else:
+        return codes.LONG_BINGET + pack("<I", idx)
 
 
 def encode_none() -> bytes:
