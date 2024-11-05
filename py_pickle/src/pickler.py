@@ -33,13 +33,37 @@ def partial_pickle(obj: Any, memory: Optional[Dict[Any, Any]] = None) -> bytes:
     return pickled_obj
 
 
-def merge_partials(obj1: bytes, obj2: bytes):
+def merge_partials(obj1: bytes, obj2: bytes) -> bytes:
+    result = b""
     identifier_1 = obj1[:1] if len(obj1) else b""
     identifier_2 = obj2[:1] if len(obj2) else b""
 
     match (identifier_1, identifier_2):
         case (b"\x8c" | b"X" | b"\x8d", b"\x8c" | b"X" | b"\x8d"):
-            print("string identified")
+            len_bytes_1 = (
+                1 if identifier_1 == b"\x8c" else 4 if identifier_1 == b"X" else 8
+            )
+            len_bytes_2 = (
+                1 if identifier_2 == b"\x8c" else 4 if identifier_2 == b"X" else 8
+            )
+
+            maintain_one = obj1[len_bytes_1 + 1 : -1]
+            maintain_two = obj2[len_bytes_2 + 1 : -1]
+
+            result = maintain_one + maintain_two + codes.MEMO
+            identifier = (
+                b"\x8c"
+                if len(maintain_one + maintain_two) < 256
+                else b"X"
+                if len(maintain_one + maintain_two) <= 0xFFFFFFFF
+                else b"\x8d"
+            )
+            result = (
+                identifier
+                + length_packer(len(maintain_one) + len(maintain_two))
+                + result
+                + b"."
+            )
         case (
             b"J"
             | b"K"
@@ -64,6 +88,18 @@ def merge_partials(obj1: bytes, obj2: bytes):
         case _:
             # TODO: merge into a list
             print("2 objects found")
+
+    frame_bytes = b"\x95" + pack("<Q", len(result)) if len(result) >= 4 else b""
+    return b"\x80\x04" + frame_bytes + result
+
+
+def length_packer(length: int) -> bytes:
+    if length < 256:
+        return pack("<B", length)
+    elif length > 0xFFFFFFFF:
+        return pack("<Q", length)
+    else:
+        return pack("<I", length)
 
 
 def memoize(memory: Dict[Any, Any], obj: Any) -> bytes:
