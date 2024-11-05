@@ -13,7 +13,7 @@ disbatch_table_memo: Dict[Type[Any], MemoizedFunction] = {}
 disbatch_table_no_memo: Dict[Type[Any], NonMemoizedFunction] = {}
 
 
-def partial_dump(obj: Any, memory: Optional[Dict[Any, Any]] = None) -> bytes:
+def partial_pickle(obj: Any, memory: Optional[Dict[Any, Any]] = None) -> bytes:
     pickled_obj = b""
 
     memory = memory or {}
@@ -29,11 +29,13 @@ def partial_dump(obj: Any, memory: Optional[Dict[Any, Any]] = None) -> bytes:
     elif obj_type in disbatch_table_no_memo:
         func = disbatch_table_no_memo[obj_type]
         pickled_obj += func(obj)
-    else:
-        print("uh oh")
 
     return pickled_obj
 
+
+def merge_partials():
+    print(partial_pickle("hello"))
+    print(partial_pickle("hello"))
 
 def memoize(memory: Dict[Any, Any], obj: Any) -> bytes:
     memory[id(obj)] = len(memory), obj
@@ -156,10 +158,10 @@ def add_batch(memory: Dict[Any, Any], items: Any) -> bytes:
         if n > 1:
             result += codes.MARK
             for itm in temp:
-                result += partial_dump(itm, memory)
+                result += partial_pickle(itm, memory)
             result += codes.APPENDS
         elif n:
-            result += partial_dump(temp[0], memory)
+            result += partial_pickle(temp[0], memory)
             result += codes.APPEND
 
         if n < 1000:
@@ -179,13 +181,13 @@ def set_batch(memory: Dict[Any, Any], items: Any) -> bytes:
         if n > 1:
             result += codes.MARK
             for key, value in temp:
-                result += partial_dump(key, memory)
-                result += partial_dump(value, memory)
+                result += partial_pickle(key, memory)
+                result += partial_pickle(value, memory)
             result += codes.SETITEMS
         elif n:
             key, value = temp[0]
-            result += partial_dump(key, memory)
-            result += partial_dump(value, memory)
+            result += partial_pickle(key, memory)
+            result += partial_pickle(value, memory)
             result += codes.SETITEM
 
         if n < 1000:
@@ -202,7 +204,7 @@ def encode_tuple(memory: Dict[Any, Any], obj: Tuple[Any, ...]) -> bytes:
         return get(memory[id(obj)][0])
 
     for itm in obj:
-        res += partial_dump(itm)
+        res += partial_pickle(itm)
 
     if len(obj) <= 3:
         match len(obj):
