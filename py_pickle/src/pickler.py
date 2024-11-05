@@ -16,8 +16,7 @@ disbatch_table_no_memo: Dict[Type[Any], NonMemoizedFunction] = {}
 def partial_dump(obj: Any, memory: Optional[Dict[Any, Any]] = None) -> bytes:
     pickled_obj = b""
 
-    if memory is None:
-        memory = {}
+    memory = memory or {}
 
     if id(obj) in memory:
         return get(memory[id(obj)][0])
@@ -142,13 +141,6 @@ def encode_bytes(memory: Dict[Any, Any], obj: bytes) -> bytes:
 
 
 disbatch_table_memo[bytes] = encode_bytes
-
-
-def encode_bytearray(obj: bytearray) -> bytes:
-    return codes.BYTEARRAY + pack("<Q", len(obj)) + obj
-
-
-disbatch_table_no_memo[bytearray] = encode_bytearray
 
 
 def add_batch(memory: Dict[Any, Any], items: Any) -> bytes:
