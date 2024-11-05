@@ -40,22 +40,37 @@ def merge_partials(obj1: bytes, obj2: bytes):
     match (identifier_1, identifier_2):
         case (b"\x8c" | b"X" | b"\x8d", b"\x8c" | b"X" | b"\x8d"):
             print("string identified")
-        case (b"J" | b"K" | b"\x8a" | b"\x8b", b"J" | b"K" | b"\x8a" | b"\x8b"):
-            print("long identified")
-        case (b"G", b"G"):
-            print("float identified")
+        case (
+            b"J"
+            | b"K"
+            | b"\x8a"
+            | b"\x8b"
+            | b"G",
+            b"J"
+            | b"K"
+            | b"\x8a"
+            | b"\x8b"
+            | b"G",
+        ):
+            print("Two numerics found")
+        case (b"\x8e" | b"B" | b"\x96", b"\x8e" | b"B" | b"\x96"):
+            print("bytes detected")
+        case (b"}" | b"]" | b")" | b"(", b"}" | b"]" | b")" | b"("):
+            print("sequence identified")
         case (b"", b""):
             raise ValueError("Invalid Input: Un-mergable objects")
+        case (_, b"") | (b"", _):
+            print("single item wrapping")
         case _:
             # TODO: merge into a list
-            pass
+            print("2 objects found")
 
 
 def get_identifier(obj: bytes) -> bytes:
     if not obj:
         return b""
 
-    return obj[:1] if obj[:1] in [b"]", b"}", b")", b"N"] else obj[:3]
+    return obj[:1] if obj[:1] in [b"]", b"}", b")", b"(" b"N"] else obj[:3]
 
 
 def memoize(memory: Dict[Any, Any], obj: Any) -> bytes:
