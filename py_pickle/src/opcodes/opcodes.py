@@ -1,6 +1,5 @@
 class OPCODE:
     MEMO: bytes = b"\x94"
-    POP: bytes = b"0"
     BINGET: bytes = b"h"
     LONG_BINGET: bytes = b"j"
 

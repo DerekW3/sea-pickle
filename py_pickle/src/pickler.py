@@ -33,9 +33,30 @@ def partial_pickle(obj: Any, memory: Optional[Dict[Any, Any]] = None) -> bytes:
     return pickled_obj
 
 
-def merge_partials():
-    print(partial_pickle("hello"))
-    print(partial_pickle("hello"))
+def merge_partials(obj1: bytes, obj2: bytes):
+    identifier_1 = get_identifier(obj1)
+    identifier_2 = get_identifier(obj2)
+
+    match (identifier_1, identifier_2):
+        case (b"\x8c" | b"X" | b"\x8d", b"\x8c" | b"X" | b"\x8d"):
+            print("string identified")
+        case (b"J" | b"K" | b"\x8a" | b"\x8b", b"J" | b"K" | b"\x8a" | b"\x8b"):
+            print("long identified")
+        case (b"G", b"G"):
+            print("float identified")
+        case (b"", b""):
+            raise ValueError("Invalid Input: Un-mergable objects")
+        case _:
+            # TODO: merge into a list
+            pass
+
+
+def get_identifier(obj: bytes) -> bytes:
+    if not obj:
+        return b""
+
+    return obj[:1] if obj[:1] in [b"]", b"}", b")", b"N"] else obj[:3]
+
 
 def memoize(memory: Dict[Any, Any], obj: Any) -> bytes:
     memory[id(obj)] = len(memory), obj
@@ -202,6 +223,8 @@ def encode_tuple(memory: Dict[Any, Any], obj: Tuple[Any, ...]) -> bytes:
 
     if id(obj) in memory:
         return get(memory[id(obj)][0])
+
+    res += codes.MARK
 
     for itm in obj:
         res += partial_pickle(itm)
