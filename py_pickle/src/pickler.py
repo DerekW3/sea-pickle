@@ -225,6 +225,8 @@ def encode_tuple(memory: Dict[Any, Any], obj: Tuple[Any, ...]) -> bytes:
                 res += codes.TUPLE2
             case _:
                 res += codes.TUPLE3
+    else:
+        res += codes.TUPLE
 
     res += memoize(memory, obj)
 

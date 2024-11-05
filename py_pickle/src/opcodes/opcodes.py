@@ -43,6 +43,7 @@ class OPCODE:
     TUPLE1 = b"\x85"
     TUPLE2 = b"\x86"
     TUPLE3 = b"\x87"
+    TUPLE = b"t"
 
     # LIST TYPES
     EMPTY_LIST = b"]"
