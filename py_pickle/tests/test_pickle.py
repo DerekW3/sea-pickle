@@ -30,7 +30,7 @@ def test_encode_list():
     assert partial_dump([1, 100]) in pickle.dumps([1, 100])
     assert partial_dump([1, "a"]) in pickle.dumps([1, "a"])
     assert partial_dump([1, "a", 1.0]) in pickle.dumps([1, "a", 1.0])
-    assert partial_dump([1, "a", 1, 1]) in pickle.dumps([1, "a", 1, 1])
+    assert partial_dump([1, "a", 1, 1, "helloooo"]) in pickle.dumps([1, "a", 1, 1, "helloooo"])
 
 
 def test_encode_dict():

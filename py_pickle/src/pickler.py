@@ -1,12 +1,16 @@
 from itertools import islice
 from struct import pack
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type
 
 from .opcodes.opcodes import OPCODE
 
 codes = OPCODE()
 
-disbatch_table = {}
+NonMemoizedFunction = Callable[[Any], bytes]
+MemoizedFunction = Callable[[Dict[Any, Any], Any], bytes]
+
+disbatch_table_memo: Dict[Type[Any], MemoizedFunction] = {}
+disbatch_table_no_memo: Dict[Type[Any], NonMemoizedFunction] = {}
 
 
 def partial_dump(obj: Any, memory: Optional[Dict[Any, Any]] = None) -> bytes:
@@ -18,26 +22,16 @@ def partial_dump(obj: Any, memory: Optional[Dict[Any, Any]] = None) -> bytes:
     if id(obj) in memory:
         return get(memory[id(obj)][0])
 
-    if obj is None:
-        pickled_obj += encode_none()
-    elif isinstance(obj, bool):
-        pickled_obj += encode_bool(obj)
-    elif isinstance(obj, str):
-        pickled_obj += encode_string(memory, obj)
-    elif isinstance(obj, float):
-        pickled_obj += encode_float(obj)
-    elif isinstance(obj, int):
-        pickled_obj += encode_long(obj)
-    elif isinstance(obj, bytes):
-        pickled_obj += encode_bytes(memory, obj)
-    elif isinstance(obj, bytearray):
-        pickled_obj += encode_bytearray(obj)
-    elif isinstance(obj, tuple):
-        pickled_obj += encode_tuple(memory, cast(Tuple[Any, ...], obj))
-    elif isinstance(obj, list):
-        pickled_obj += encode_list(memory, cast(List[Any], obj))
-    elif isinstance(obj, Dict):
-        pickled_obj += encode_dict(memory, cast(Dict[Any, Any], obj))
+    obj_type: Any = type(obj)
+
+    if obj_type in disbatch_table_memo:
+        func = disbatch_table_memo[obj_type]
+        pickled_obj += func(memory, obj)
+    elif obj_type in disbatch_table_no_memo:
+        func = disbatch_table_no_memo[obj_type]
+        pickled_obj += func(obj)
+    else:
+        print("uh oh")
 
     return pickled_obj
 
@@ -55,18 +49,19 @@ def get(idx: int) -> bytes:
         return codes.LONG_BINGET + pack("<I", idx)
 
 
-def encode_none() -> bytes:
-    return codes.NONE
+def encode_none(obj: None) -> bytes:
+    if obj is None:
+        return codes.NONE
 
 
-disbatch_table[type(None)] = encode_none
+disbatch_table_no_memo[type(None)] = encode_none
 
 
 def encode_bool(obj: bool) -> bytes:
     return codes.TRUE if obj else codes.FALSE
 
 
-disbatch_table[bool] = encode_bool
+disbatch_table_no_memo[bool] = encode_bool
 
 
 def encode_string(memory: Dict[Any, Any], obj: str) -> bytes:
@@ -85,14 +80,14 @@ def encode_string(memory: Dict[Any, Any], obj: str) -> bytes:
     return res
 
 
-disbatch_table[str] = encode_string
+disbatch_table_memo[str] = encode_string
 
 
 def encode_float(obj: float) -> bytes:
     return codes.BINFLOAT + pack(">d", obj)
 
 
-disbatch_table[float] = encode_float
+disbatch_table_no_memo[float] = encode_float
 
 
 def encode_long(obj: int) -> bytes:
@@ -127,7 +122,7 @@ def encode_long(obj: int) -> bytes:
         return codes.LONG4 + pack("<i", n) + encoded_long
 
 
-disbatch_table[int] = encode_long
+disbatch_table_no_memo[int] = encode_long
 
 
 def encode_bytes(memory: Dict[Any, Any], obj: bytes) -> bytes:
@@ -146,14 +141,14 @@ def encode_bytes(memory: Dict[Any, Any], obj: bytes) -> bytes:
     return res
 
 
-disbatch_table[bytes] = encode_bytes
+disbatch_table_memo[bytes] = encode_bytes
 
 
 def encode_bytearray(obj: bytearray) -> bytes:
     return codes.BYTEARRAY + pack("<Q", len(obj)) + obj
 
 
-disbatch_table[bytearray] = encode_bytearray
+disbatch_table_no_memo[bytearray] = encode_bytearray
 
 
 def add_batch(memory: Dict[Any, Any], items: Any) -> bytes:
@@ -233,7 +228,7 @@ def encode_tuple(memory: Dict[Any, Any], obj: Tuple[Any, ...]) -> bytes:
     return res
 
 
-disbatch_table[tuple] = encode_tuple
+disbatch_table_memo[tuple] = encode_tuple
 
 
 def encode_list(memory: Dict[Any, Any], obj: List[Any]) -> bytes:
@@ -248,7 +243,7 @@ def encode_list(memory: Dict[Any, Any], obj: List[Any]) -> bytes:
     return res
 
 
-disbatch_table[list] = encode_list
+disbatch_table_memo[list] = encode_list
 
 
 def encode_dict(memory: Dict[Any, Any], obj: Dict[Any, Any]) -> bytes:
@@ -263,4 +258,4 @@ def encode_dict(memory: Dict[Any, Any], obj: Dict[Any, Any]) -> bytes:
     return res
 
 
-disbatch_table[dict] = encode_dict
+disbatch_table_memo[dict] = encode_dict
