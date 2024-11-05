@@ -1,5 +1,3 @@
-import contextlib
-import sys
 from itertools import islice
 from struct import pack
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type
@@ -261,36 +259,3 @@ def encode_dict(memory: Dict[Any, Any], obj: Dict[Any, Any]) -> bytes:
 
 
 disbatch_table_memo[dict] = encode_dict
-
-
-def get_attr(obj: Any, name: str):
-    top = obj
-
-    for subpath in name.split("."):
-        if subpath == "<locals>":
-            raise AttributeError("Cannot get a local attribute")
-
-        try:
-            parent = obj
-            obj = getattr(obj, subpath)
-        except AttributeError as e:
-            raise AttributeError(f"Cannot get attribute {name} on {top}") from e
-
-    return obj, parent  # type: ignore
-
-
-def get_module(obj: Any, name: str):
-    module_name = getattr(obj, "__module__", None)
-
-    if module_name is not None:
-        return module_name
-
-    for module_name, module in sys.modules.copy().items():
-        if module_name in ("__main__", "__mp_main__") or not module:
-            continue
-
-        with contextlib.suppress(AttributeError):
-            if get_attr(module, name)[0] is obj:
-                return module_name
-
-    return "__main__"
