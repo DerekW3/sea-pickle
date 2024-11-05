@@ -35,7 +35,7 @@ def partial_pickle(obj: Any, memory: Optional[Dict[Any, Any]] = None) -> bytes:
 
 def merge_partials(obj1: bytes, obj2: bytes):
     identifier_1 = obj1[:1] if len(obj1) else b""
-    identifier_2 = obj1[:1] if len(obj1) else b""
+    identifier_2 = obj2[:1] if len(obj2) else b""
 
     match (identifier_1, identifier_2):
         case (b"\x8c" | b"X" | b"\x8d", b"\x8c" | b"X" | b"\x8d"):
@@ -53,7 +53,7 @@ def merge_partials(obj1: bytes, obj2: bytes):
             | b"G",
         ):
             print("Two numerics found")
-        case (b"\x8e" | b"B" | b"\x96", b"\x8e" | b"B" | b"\x96"):
+        case (b"\x8e" | b"B" | b"C", b"\x8e" | b"B" | b"C"):
             print("bytes detected")
         case (b"}" | b"]" | b")" | b"(", b"}" | b"]" | b")" | b"("):
             print("sequence identified")
