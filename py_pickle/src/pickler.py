@@ -6,6 +6,8 @@ from .opcodes.opcodes import OPCODE
 
 codes = OPCODE()
 
+disbatch_table = {}
+
 
 def partial_dump(obj: Any, memory: Optional[Dict[Any, Any]] = None) -> bytes:
     pickled_obj = b""
@@ -35,7 +37,7 @@ def partial_dump(obj: Any, memory: Optional[Dict[Any, Any]] = None) -> bytes:
     elif isinstance(obj, list):
         pickled_obj += encode_list(memory, cast(List[Any], obj))
     elif isinstance(obj, Dict):
-        pickled_obj += encode_Dict(memory, cast(Dict[Any, Any], obj))
+        pickled_obj += encode_dict(memory, cast(Dict[Any, Any], obj))
 
     return pickled_obj
 
@@ -57,8 +59,14 @@ def encode_none() -> bytes:
     return codes.NONE
 
 
+disbatch_table[type(None)] = encode_none
+
+
 def encode_bool(obj: bool) -> bytes:
     return codes.TRUE if obj else codes.FALSE
+
+
+disbatch_table[bool] = encode_bool
 
 
 def encode_string(memory: Dict[Any, Any], obj: str) -> bytes:
@@ -77,8 +85,14 @@ def encode_string(memory: Dict[Any, Any], obj: str) -> bytes:
     return res
 
 
+disbatch_table[str] = encode_string
+
+
 def encode_float(obj: float) -> bytes:
     return codes.BINFLOAT + pack(">d", obj)
+
+
+disbatch_table[float] = encode_float
 
 
 def encode_long(obj: int) -> bytes:
@@ -113,6 +127,9 @@ def encode_long(obj: int) -> bytes:
         return codes.LONG4 + pack("<i", n) + encoded_long
 
 
+disbatch_table[int] = encode_long
+
+
 def encode_bytes(memory: Dict[Any, Any], obj: bytes) -> bytes:
     res = b""
     n = len(obj)
@@ -129,8 +146,14 @@ def encode_bytes(memory: Dict[Any, Any], obj: bytes) -> bytes:
     return res
 
 
+disbatch_table[bytes] = encode_bytes
+
+
 def encode_bytearray(obj: bytearray) -> bytes:
     return codes.BYTEARRAY + pack("<Q", len(obj)) + obj
+
+
+disbatch_table[bytearray] = encode_bytearray
 
 
 def add_batch(memory: Dict[Any, Any], items: Any) -> bytes:
@@ -208,6 +231,9 @@ def encode_tuple(memory: Dict[Any, Any], obj: Tuple[Any, ...]) -> bytes:
     return res
 
 
+disbatch_table[tuple] = encode_tuple
+
+
 def encode_list(memory: Dict[Any, Any], obj: List[Any]) -> bytes:
     res = b""
 
@@ -220,7 +246,10 @@ def encode_list(memory: Dict[Any, Any], obj: List[Any]) -> bytes:
     return res
 
 
-def encode_Dict(memory: Dict[Any, Any], obj: Dict[Any, Any]) -> bytes:
+disbatch_table[list] = encode_list
+
+
+def encode_dict(memory: Dict[Any, Any], obj: Dict[Any, Any]) -> bytes:
     res = b""
 
     res += codes.EMPTY_DICT
@@ -230,3 +259,6 @@ def encode_Dict(memory: Dict[Any, Any], obj: Dict[Any, Any]) -> bytes:
     res += set_batch(memory, obj.items())
 
     return res
+
+
+disbatch_table[dict] = encode_dict
