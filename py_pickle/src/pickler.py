@@ -40,30 +40,7 @@ def merge_partials(obj1: bytes, obj2: bytes) -> bytes:
 
     match (identifier_1, identifier_2):
         case (b"\x8c" | b"X" | b"\x8d", b"\x8c" | b"X" | b"\x8d"):
-            len_bytes_1 = (
-                1 if identifier_1 == b"\x8c" else 4 if identifier_1 == b"X" else 8
-            )
-            len_bytes_2 = (
-                1 if identifier_2 == b"\x8c" else 4 if identifier_2 == b"X" else 8
-            )
-
-            maintain_one = obj1[len_bytes_1 + 1 : -1]
-            maintain_two = obj2[len_bytes_2 + 1 : -1]
-
-            result = maintain_one + maintain_two + codes.MEMO
-            identifier = (
-                b"\x8c"
-                if len(maintain_one + maintain_two) < 256
-                else b"X"
-                if len(maintain_one + maintain_two) <= 0xFFFFFFFF
-                else b"\x8d"
-            )
-            result = (
-                identifier
-                + length_packer(len(maintain_one) + len(maintain_two))
-                + result
-                + b"."
-            )
+            result = merge_strings(obj1, identifier_1, obj2, identifier_2)
         case (
             b"J"
             | b"K"
@@ -100,6 +77,33 @@ def length_packer(length: int) -> bytes:
         return pack("<Q", length)
     else:
         return pack("<I", length)
+
+
+def merge_strings(
+    str_1: bytes, identifier_1: bytes, str_2: bytes, identifier_2: bytes
+) -> bytes:
+    result = b""
+    len_bytes_1 = 1 if identifier_1 == b"\x8c" else 4 if identifier_1 == b"X" else 8
+    len_bytes_2 = 1 if identifier_2 == b"\x8c" else 4 if identifier_2 == b"X" else 8
+
+    maintain_one = str_1[len_bytes_1 + 1 : -1]
+    maintain_two = str_2[len_bytes_2 + 1 : -1]
+
+    result = maintain_one + maintain_two + codes.MEMO
+    identifier = (
+        b"\x8c"
+        if len(maintain_one + maintain_two) < 256
+        else b"X"
+        if len(maintain_one + maintain_two) <= 0xFFFFFFFF
+        else b"\x8d"
+    )
+
+    return (
+        identifier
+        + length_packer(len(maintain_one) + len(maintain_two))
+        + result
+        + b"."
+    )
 
 
 def memoize(memory: Dict[Any, Any], obj: Any) -> bytes:
