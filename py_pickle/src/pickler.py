@@ -34,8 +34,8 @@ def partial_pickle(obj: Any, memory: Optional[Dict[Any, Any]] = None) -> bytes:
 
 
 def merge_partials(obj1: bytes, obj2: bytes):
-    identifier_1 = get_identifier(obj1)
-    identifier_2 = get_identifier(obj2)
+    identifier_1 = obj1[:1] if len(obj1) else b""
+    identifier_2 = obj1[:1] if len(obj1) else b""
 
     match (identifier_1, identifier_2):
         case (b"\x8c" | b"X" | b"\x8d", b"\x8c" | b"X" | b"\x8d"):
@@ -64,13 +64,6 @@ def merge_partials(obj1: bytes, obj2: bytes):
         case _:
             # TODO: merge into a list
             print("2 objects found")
-
-
-def get_identifier(obj: bytes) -> bytes:
-    if not obj:
-        return b""
-
-    return obj[:1] if obj[:1] in [b"]", b"}", b")", b"(" b"N"] else obj[:3]
 
 
 def memoize(memory: Dict[Any, Any], obj: Any) -> bytes:
