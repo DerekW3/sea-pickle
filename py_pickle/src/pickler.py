@@ -41,23 +41,8 @@ def merge_partials(obj1: bytes, obj2: bytes) -> bytes:
     match (identifier_1, identifier_2):
         case (b"\x8c" | b"X" | b"\x8d", b"\x8c" | b"X" | b"\x8d"):
             result = merge_strings(obj1, identifier_1, obj2, identifier_2)
-        case (
-            b"J"
-            | b"K"
-            | b"\x8a"
-            | b"\x8b"
-            | b"G",
-            b"J"
-            | b"K"
-            | b"\x8a"
-            | b"\x8b"
-            | b"G",
-        ):
-            print("Two numerics found")
         case (b"\x8e" | b"B" | b"C", b"\x8e" | b"B" | b"C"):
-            print("bytes detected")
-        case (b"}" | b"]" | b")" | b"(", b"}" | b"]" | b")" | b"("):
-            print("sequence identified")
+            result = merge_bytes(obj1, identifier_1, obj2, identifier_2)
         case (b"", b""):
             raise ValueError("Invalid Input: Un-mergable objects")
         case (_, b"") | (b"", _):
@@ -91,11 +76,50 @@ def merge_strings(
 
     result = maintain_one + maintain_two + codes.MEMO
     identifier = (
-        b"\x8c"
+        codes.SHORT_UNICODE
         if len(maintain_one + maintain_two) < 256
-        else b"X"
+        else codes.UNICODE
         if len(maintain_one + maintain_two) <= 0xFFFFFFFF
-        else b"\x8d"
+        else codes.LONG_UNICODE
+    )
+
+    return (
+        identifier
+        + length_packer(len(maintain_one) + len(maintain_two))
+        + result
+        + b"."
+    )
+
+
+def merge_bytes(
+    byte_str_1: bytes, identifier_1: bytes, byte_str_2: bytes, identifier_2: bytes
+) -> bytes:
+    result = b""
+    len_bytes_1 = (
+        1
+        if identifier_1 == codes.SHORT_BINBYTES
+        else 4
+        if identifier_1 == codes.BINBYTES
+        else 8
+    )
+    len_bytes_2 = (
+        1
+        if identifier_2 == codes.SHORT_BINBYTES
+        else 4
+        if identifier_2 == codes.BINBYTES
+        else 8
+    )
+
+    maintain_one = byte_str_1[len_bytes_1 + 1 : -1]
+    maintain_two = byte_str_2[len_bytes_2 + 1 : -1]
+
+    result = maintain_one + maintain_two + codes.MEMO
+    identifier = (
+        codes.SHORT_BINBYTES
+        if len(maintain_one + maintain_two) < 256
+        else codes.BINBYTES
+        if len(maintain_one + maintain_two) <= 0xFFFFFFFF
+        else codes.BINBYTES8
     )
 
     return (
