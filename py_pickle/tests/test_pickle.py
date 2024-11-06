@@ -61,6 +61,52 @@ def test_encode_int():
 def test_encode_bytes():
     assert partial_pickle(b"101010") in pickle.dumps(b"101010")
 
+    byte_str1 = b"101010"
+    byte_str2 = b"Hello, World!"
+    empty_byte_str = b""
+    long_byte_str = b"A" * 1000
+    special_byte_str = b"\x00\x01\x02\x03"
+
+    assert merge_partials(
+        partial_pickle(byte_str1[:3]), partial_pickle(byte_str1[3:])
+    ) == pickle.dumps(byte_str1)
+
+    assert merge_partials(
+        partial_pickle(byte_str2[:5]), partial_pickle(byte_str2[5:])
+    ) == pickle.dumps(byte_str2)
+
+    assert merge_partials(
+        partial_pickle(empty_byte_str), partial_pickle(empty_byte_str)
+    ) == pickle.dumps(empty_byte_str)
+
+    assert merge_partials(
+        partial_pickle(long_byte_str[:500]), partial_pickle(long_byte_str[500:])
+    ) == pickle.dumps(long_byte_str)
+
+    assert merge_partials(
+        partial_pickle(special_byte_str[:10]), partial_pickle(special_byte_str[10:])
+    ) == pickle.dumps(special_byte_str)
+
+    assert merge_partials(
+        partial_pickle(b"Byte string with spaces "), partial_pickle(b"and more bytes.")
+    ) == pickle.dumps(b"Byte string with spaces and more bytes.")
+
+    assert merge_partials(
+        partial_pickle(b"Single"), partial_pickle(b"ByteString")
+    ) == pickle.dumps(b"SingleByteString")
+
+    assert merge_partials(
+        partial_pickle(b"Leading space"), partial_pickle(b"Trailing space ")
+    ) == pickle.dumps(b"Leading spaceTrailing space ")
+
+    assert merge_partials(
+        partial_pickle(empty_byte_str), partial_pickle(b"Non-empty")
+    ) == pickle.dumps(b"Non-empty")
+
+    assert merge_partials(
+        partial_pickle(b"Non-empty"), partial_pickle(empty_byte_str)
+    ) == pickle.dumps(b"Non-empty")
+
 
 def test_encode_tuple():
     assert partial_pickle((1, 100)) in pickle.dumps((1, 100))
