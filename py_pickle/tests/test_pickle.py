@@ -324,6 +324,64 @@ def test_encode_dict():
         {1: "hello", "h": True}
     )
 
+    assert merge_partials(
+        partial_pickle({"key1": "value1"}), partial_pickle({"key2": "value2"})
+    ) == pickle.dumps([{"key1": "value1"}, {"key2": "value2"}])
+
+    assert merge_partials(
+        partial_pickle({"a": 1}), partial_pickle({"b": 2})
+    ) == pickle.dumps([{"a": 1}, {"b": 2}])
+
+    assert merge_partials(
+        partial_pickle({"x": [1, 2]}), partial_pickle({"y": [3, 4]})
+    ) == pickle.dumps([{"x": [1, 2]}, {"y": [3, 4]}])
+
+    assert merge_partials(
+        partial_pickle({"name": "Alice", "age": 30}),
+        partial_pickle({"city": "Wonderland"}),
+    ) == pickle.dumps([{"name": "Alice", "age": 30}, {"city": "Wonderland"}])
+
+    assert merge_partials(
+        partial_pickle({"key": None}), partial_pickle({"another_key": True})
+    ) == pickle.dumps([{"key": None}, {"another_key": True}])
+
+    assert merge_partials(
+        partial_pickle({"nested": {"inner_key": "inner_value"}}),
+        partial_pickle({"outer_key": "outer_value"}),
+    ) == pickle.dumps(
+        [{"nested": {"inner_key": "inner_value"}}, {"outer_key": "outer_value"}]
+    )
+
+    assert merge_partials(
+        partial_pickle({}), partial_pickle({"only_key": "only_value"})
+    ) == pickle.dumps([{}, {"only_key": "only_value"}])
+
+    assert merge_partials(
+        partial_pickle({"single": 1}), partial_pickle({})
+    ) == pickle.dumps([{"single": 1}, {}])
+
+    assert merge_partials(
+        partial_pickle({"a": 1, "b": 2}), partial_pickle({"c": 3, "d": 4})
+    ) == pickle.dumps([{"a": 1, "b": 2}, {"c": 3, "d": 4}])
+
+    assert merge_partials(
+        partial_pickle({"key1": "value1", "key2": "value2"}),
+        partial_pickle({"key3": "value3"}),
+    ) == pickle.dumps([{"key1": "value1", "key2": "value2"}, {"key3": "value3"}])
+
+    assert merge_partials(
+        partial_pickle({"a": {"b": 2}}), partial_pickle({"c": {"d": 4}})
+    ) == pickle.dumps([{"a": {"b": 2}}, {"c": {"d": 4}}])
+
+    assert merge_partials(
+        partial_pickle({"key": 1}), partial_pickle({"key": 2})
+    ) == pickle.dumps([{"key": 1}, {"key": 2}])
+
+    assert merge_partials(
+        partial_pickle({"list": [1, 2, 3]}),
+        partial_pickle({"dict": {"nested_key": "nested_value"}}),
+    ) == pickle.dumps([{"list": [1, 2, 3]}, {"dict": {"nested_key": "nested_value"}}])
+
 
 def test_mixed_types():
     assert partial_pickle(([1, 1, "wah"], [True, "hello there"])) in pickle.dumps(
