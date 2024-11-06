@@ -1,6 +1,6 @@
 import pickle
 
-from src.pickler import partial_pickle
+from src.pickler import merge_partials, partial_pickle
 
 
 def test_encode_str():
@@ -15,6 +15,34 @@ def test_encode_str():
     assert partial_pickle("") in pickle.dumps("")
     assert partial_pickle("a" * 255) in pickle.dumps("a" * 255)
     assert partial_pickle("a" * 256) in pickle.dumps("a" * 256)
+
+    long_str = "A" * 1000
+    special_char_str = "!@#$%^&*()_+[]{}|;:',.<>?/~`"
+    assert merge_partials(
+        partial_pickle(multiline_str[:100]), partial_pickle(multiline_str[100:])
+    ) == pickle.dumps(multiline_str)
+
+    assert merge_partials(partial_pickle(""), partial_pickle("")) == pickle.dumps("")
+
+    assert merge_partials(
+        partial_pickle(long_str[:500]), partial_pickle(long_str[500:])
+    ) == pickle.dumps(long_str)
+
+    assert merge_partials(
+        partial_pickle(special_char_str[:10]), partial_pickle(special_char_str[10:])
+    ) == pickle.dumps(special_char_str)
+
+    assert merge_partials(
+        partial_pickle("Test string with spaces"), partial_pickle(" and more text.")
+    ) == pickle.dumps("Test string with spaces and more text.")
+
+    assert merge_partials(
+        partial_pickle("Single"), partial_pickle("String")
+    ) == pickle.dumps("SingleString")
+
+    assert merge_partials(
+        partial_pickle("Leading space"), partial_pickle("Trailing space ")
+    ) == pickle.dumps("Leading spaceTrailing space ")
 
 
 def test_encode_float():
