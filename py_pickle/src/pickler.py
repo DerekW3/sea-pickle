@@ -37,8 +37,12 @@ def merge_partials(obj1: bytes, obj2: bytes) -> bytes:
     result = b""
     identifier_1 = obj1[:1] if len(obj1) else b""
     identifier_2 = obj2[:1] if len(obj2) else b""
-    identifier_1_count = obj1.count(identifier_1) # tuples can be unmarked and thus they need to be determined from a string in some way
+    identifier_1_count = obj1.count(
+        identifier_1
+    )  # tuples can be unmarked and thus they need to be determined from a string in some way
     identifier_2_count = obj2.count(identifier_2)
+
+    # TODO: ADD checks for memoization when similar elements are shared
 
     match (identifier_1, identifier_1_count, identifier_2, identifier_2_count):
         case (b"\x8c" | b"X" | b"\x8d", 1, b"\x8c" | b"X" | b"\x8d", 1):
