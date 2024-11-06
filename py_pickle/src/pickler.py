@@ -37,15 +37,17 @@ def merge_partials(obj1: bytes, obj2: bytes) -> bytes:
     result = b""
     identifier_1 = obj1[:1] if len(obj1) else b""
     identifier_2 = obj2[:1] if len(obj2) else b""
+    identifier_1_count = obj1.count(identifier_1) # tuples can be unmarked and thus they need to be determined from a string in some way
+    identifier_2_count = obj2.count(identifier_2)
 
-    match (identifier_1, identifier_2):
-        case (b"\x8c" | b"X" | b"\x8d", b"\x8c" | b"X" | b"\x8d"):
+    match (identifier_1, identifier_1_count, identifier_2, identifier_2_count):
+        case (b"\x8c" | b"X" | b"\x8d", 1, b"\x8c" | b"X" | b"\x8d", 1):
             result = merge_strings(obj1, identifier_1, obj2, identifier_2)
-        case (b"\x8e" | b"B" | b"C", b"\x8e" | b"B" | b"C"):
+        case (b"\x8e" | b"B" | b"C", 1, b"\x8e" | b"B" | b"C", 1):
             result = merge_bytes(obj1, identifier_1, obj2, identifier_2)
-        case (b"", b""):
+        case (b"", _, b"", _):
             raise ValueError("Invalid Input: Un-mergable objects")
-        case (_, b"") | (b"", _):
+        case (b"", *_) | (*_, b"", _):
             result = (obj1 or obj2) + b"."
         case _:
             result = (
@@ -298,26 +300,26 @@ def encode_tuple(memory: Dict[Any, Any], obj: Tuple[Any, ...]) -> bytes:
     res = b""
 
     if not obj:
-        res += codes.EMPTY_TUPLE
+        return codes.EMPTY_TUPLE
 
     if id(obj) in memory:
         return get(memory[id(obj)][0])
 
-    res += codes.MARK
+    if len(obj) > 3:
+        res += codes.MARK
 
     for itm in obj:
         res += partial_pickle(itm)
 
-    if len(obj) <= 3:
-        match len(obj):
-            case 1:
-                res += codes.TUPLE1
-            case 2:
-                res += codes.TUPLE2
-            case _:
-                res += codes.TUPLE3
-    else:
-        res += codes.TUPLE
+    match len(obj):
+        case 1:
+            res += codes.TUPLE1
+        case 2:
+            res += codes.TUPLE2
+        case 3:
+            res += codes.TUPLE3
+        case _:
+            res += codes.TUPLE
 
     res += memoize(memory, obj)
 
