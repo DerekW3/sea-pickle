@@ -46,10 +46,17 @@ def merge_partials(obj1: bytes, obj2: bytes) -> bytes:
         case (b"", b""):
             raise ValueError("Invalid Input: Un-mergable objects")
         case (_, b"") | (b"", _):
-            print("single item wrapping")
+            result = (obj1 or obj2) + b"."
         case _:
-            # TODO: merge into a list
-            print("2 objects found")
+            result = (
+                codes.EMPTY_LIST
+                + codes.MEMO
+                + codes.MARK
+                + obj1
+                + obj2
+                + codes.APPENDS
+                + b"."
+            )
 
     frame_bytes = b"\x95" + pack("<Q", len(result)) if len(result) >= 4 else b""
     return b"\x80\x04" + frame_bytes + result
