@@ -97,6 +97,44 @@ def test_encode_int():
     assert partial_pickle(-0) in pickle.dumps(-0)
     assert partial_pickle(100000000) in pickle.dumps(100000000)
 
+    assert merge_partials(partial_pickle(-100), partial_pickle(200)) == pickle.dumps(
+        [-100, 200]
+    )
+
+    assert merge_partials(partial_pickle(0), partial_pickle(1)) == pickle.dumps([0, 1])
+
+    assert merge_partials(
+        partial_pickle(123456789), partial_pickle(987654321)
+    ) == pickle.dumps([123456789, 987654321])
+
+    assert merge_partials(partial_pickle(-1), partial_pickle(1)) == pickle.dumps(
+        [-1, 1]
+    )
+
+    assert merge_partials(partial_pickle(42), partial_pickle(0)) == pickle.dumps(
+        [42, 0]
+    )
+
+    assert merge_partials(partial_pickle(1000), partial_pickle(2000)) == pickle.dumps(
+        [1000, 2000]
+    )
+
+    assert merge_partials(
+        partial_pickle(2147483647), partial_pickle(2147483648)
+    ) == pickle.dumps([2147483647, 2147483648])
+
+    assert merge_partials(
+        partial_pickle(-2147483648), partial_pickle(-2147483647)
+    ) == pickle.dumps([-2147483648, -2147483647])
+
+    assert merge_partials(partial_pickle(0), partial_pickle(-1)) == pickle.dumps(
+        [0, -1]
+    )
+
+    assert merge_partials(
+        partial_pickle(999999999999), partial_pickle(888888888888)
+    ) == pickle.dumps([999999999999, 888888888888])
+
 
 def test_encode_bytes():
     assert partial_pickle(b"101010") in pickle.dumps(b"101010")

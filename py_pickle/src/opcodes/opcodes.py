@@ -16,7 +16,7 @@ class OPCODE:
     # NUMERIC TYPES
     BININT = b"J"
     BININT1 = b"K"
-    BININT2 = b"K"
+    BININT2 = b"M"
     LONG1 = b"\x8a"
     LONG4 = b"\x8b"
     BINFLOAT = b"G"
