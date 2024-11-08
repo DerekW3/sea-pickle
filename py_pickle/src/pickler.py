@@ -75,42 +75,6 @@ def merge_partials(obj1: bytes, obj2: bytes) -> bytes:
 
             chunks = get_chunks(obj1 + obj2)
 
-            for i, chunk in enumerate(chunks):
-                if chunk[-1:] == codes.MEMO:
-                    print(f"curr memory {temp_memo}")
-                    print(f">> memoizing {chunk}")
-                    if chunk[-2:-1] == b"\x85":
-                        if chunks[i - 1] + chunks[i] not in temp_memo:
-                            temp_memo[id(chunks[i - 1] + chunks[i])] = (
-                                len(temp_memo) + 1
-                            )
-                        continue
-                    elif chunk[-2:-1] == b"\x86":
-                        if chunks[i - 2] + chunks[i - 1] + chunks[i] not in temp_memo:
-                            temp_memo[chunks[i - 2] + chunks[i - 1] + chunks[i]] = (
-                                len(temp_memo) + 1
-                            )
-                        continue
-                    elif chunk[-2:-1] == b"\x87":
-                        if (
-                            chunks[i - 3] + chunks[i - 2] + chunks[i - 1] + chunks[i]
-                            not in temp_memo
-                        ):
-                            temp_memo[
-                                chunks[i - 3]
-                                + chunks[i - 2]
-                                + chunks[i - 1]
-                                + chunks[i]
-                            ] = len(temp_memo) + 1
-                        continue
-
-                    if chunk not in temp_memo:
-                        temp_memo[chunk] = len(temp_memo) + 1
-
-            print(temp_memo)
-
-            # print(split_obj_1)
-            # print(obj1, "---------->", obj2)
             result = (
                 codes.EMPTY_LIST
                 + codes.MEMO
@@ -145,6 +109,16 @@ def get_chunks(obj: bytes) -> list[bytes]:
 
 def get_memo(chunks: list[bytes]) -> dict[bytes, int]:
     new_memo: dict[bytes, int] = {}
+
+    for i, chunk in enumerate(chunks):
+        if chunk[-1:] == codes.MEMO:
+            if chunk[-2:-1] in [b"\x85", b"\x86", b"\x87"]:
+                extracted_tuple = extract_tuple(chunks, i)
+                if extracted_tuple not in new_memo:
+                    new_memo[extracted_tuple] = len(new_memo) + 1
+                continue
+            if chunk not in new_memo:
+                new_memo[chunk] = len(new_memo) + 1
 
     return new_memo
 
