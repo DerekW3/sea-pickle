@@ -6,31 +6,37 @@ from .opcodes.opcodes import OPCODE
 
 codes = OPCODE()
 
-NonMemoizedFunction = Callable[[Any], bytes]
-MemoizedFunction = Callable[[Dict[Any, Any], Any], bytes]
-
-disbatch_table_memo: Dict[Type[Any], MemoizedFunction] = {}
-disbatch_table_no_memo: Dict[Type[Any], NonMemoizedFunction] = {}
-
 
 class Memo:
     def __init__(self) -> None:
         self.memory: dict[Any, Any] = {}
 
-    def __getitem__(self, position: Any) -> Any:
-        return self.memory[position]
+    def __getitem__(self, obj: Any) -> Any:
+        return self.memory[id(obj)][0]
 
-    def memoize(self, obj: bytes):
-        self.memory[id(obj)] = len(obj)
+    def __contains__(self, obj: Any) -> bool:
+        return id(obj) in self.memory
+
+    def memoize(self, obj: Any) -> bytes:
+        self.memory[id(obj)] = len(obj), obj
+
+        return codes.MEMO
+
+
+NonMemoizedFunction = Callable[[Any], bytes]
+MemoizedFunction = Callable[[Memo, Any], bytes]
+
+disbatch_table_memo: Dict[Type[Any], MemoizedFunction] = {}
+disbatch_table_no_memo: Dict[Type[Any], NonMemoizedFunction] = {}
 
 
 def partial_pickle(obj: Any, memory: Optional[Memo] = None) -> bytes:
     pickled_obj = b""
 
-    memory = memory or {}
+    memory = memory or Memo()
 
-    if id(obj) in memory:
-        return get(memory[id(obj)][0])
+    if obj in memory:
+        return get(memory[obj][0])
 
     obj_type: Any = type(obj)
 
@@ -181,7 +187,7 @@ def encode_bool(obj: bool) -> bytes:
 disbatch_table_no_memo[bool] = encode_bool
 
 
-def encode_string(memory: Dict[Any, Any], obj: str) -> bytes:
+def encode_string(memory: Memo, obj: str) -> bytes:
     res = b""
     utf_string: bytes = obj.encode("utf-8", "surrogatepass")
     length: int = len(utf_string)
@@ -192,7 +198,7 @@ def encode_string(memory: Dict[Any, Any], obj: str) -> bytes:
     else:
         res += codes.UNICODE + pack("<I", length) + utf_string
 
-    res += memoize(memory, obj)
+    res += memory.memoize(obj)
 
     return res
 
@@ -242,7 +248,7 @@ def encode_long(obj: int) -> bytes:
 disbatch_table_no_memo[int] = encode_long
 
 
-def encode_bytes(memory: Dict[Any, Any], obj: bytes) -> bytes:
+def encode_bytes(memory: Memo, obj: bytes) -> bytes:
     res = b""
     n = len(obj)
 
@@ -253,7 +259,7 @@ def encode_bytes(memory: Dict[Any, Any], obj: bytes) -> bytes:
     else:
         res += codes.BINBYTES + pack("<I", n) + obj
 
-    res += memoize(memory, obj)
+    res += memory.memoize(obj)
 
     return res
 
@@ -261,7 +267,7 @@ def encode_bytes(memory: Dict[Any, Any], obj: bytes) -> bytes:
 disbatch_table_memo[bytes] = encode_bytes
 
 
-def add_batch(memory: Dict[Any, Any], items: Any) -> bytes:
+def add_batch(memory: Memo, items: Any) -> bytes:
     it = iter(items)
 
     result = b""
@@ -284,7 +290,7 @@ def add_batch(memory: Dict[Any, Any], items: Any) -> bytes:
             return result
 
 
-def set_batch(memory: Dict[Any, Any], items: Any) -> bytes:
+def set_batch(memory: Memo, items: Any) -> bytes:
     it = iter(items)
 
     result = b""
@@ -310,14 +316,14 @@ def set_batch(memory: Dict[Any, Any], items: Any) -> bytes:
             return result
 
 
-def encode_tuple(memory: Dict[Any, Any], obj: Tuple[Any, ...]) -> bytes:
+def encode_tuple(memory: Memo, obj: Tuple[Any, ...]) -> bytes:
     res = b""
 
     if not obj:
         return codes.EMPTY_TUPLE
 
-    if id(obj) in memory:
-        return get(memory[id(obj)][0])
+    if obj in memory:
+        return get(memory[obj])
 
     if len(obj) > 3:
         res += codes.MARK
@@ -335,7 +341,7 @@ def encode_tuple(memory: Dict[Any, Any], obj: Tuple[Any, ...]) -> bytes:
         case _:
             res += codes.TUPLE
 
-    res += memoize(memory, obj)
+    res += memory.memoize(obj)
 
     return res
 
@@ -343,12 +349,12 @@ def encode_tuple(memory: Dict[Any, Any], obj: Tuple[Any, ...]) -> bytes:
 disbatch_table_memo[tuple] = encode_tuple
 
 
-def encode_list(memory: Dict[Any, Any], obj: List[Any]) -> bytes:
+def encode_list(memory: Memo, obj: List[Any]) -> bytes:
     res = b""
 
     res += codes.EMPTY_LIST
 
-    res += memoize(memory, obj)
+    res += memory.memoize(obj)
 
     res += add_batch(memory, obj)
 
@@ -358,12 +364,12 @@ def encode_list(memory: Dict[Any, Any], obj: List[Any]) -> bytes:
 disbatch_table_memo[list] = encode_list
 
 
-def encode_dict(memory: Dict[Any, Any], obj: Dict[Any, Any]) -> bytes:
+def encode_dict(memory: Memo, obj: Dict[Any, Any]) -> bytes:
     res = b""
 
     res += codes.EMPTY_DICT
 
-    res += memoize(memory, obj)
+    res += memory.memoize(obj)
 
     res += set_batch(memory, obj.items())
 
