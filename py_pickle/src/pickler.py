@@ -61,8 +61,6 @@ def merge_partials(obj1: bytes, obj2: bytes) -> bytes:
     )  # tuples can be unmarked and thus they need to be determined from a string in some way
     identifier_2_count = obj2.count(identifier_2)
 
-    # TODO: ADD checks for memoization when similar elements are shared
-
     match (identifier_1, identifier_1_count, identifier_2, identifier_2_count):
         case (b"\x8c" | b"X" | b"\x8d", 1, b"\x8c" | b"X" | b"\x8d", 1):
             result = merge_strings(obj1, identifier_1, obj2, identifier_2)
@@ -101,6 +99,8 @@ def get_chunks(obj: bytes) -> list[bytes]:
 
 def get_memo(chunks: list[bytes]) -> dict[bytes, int]:
     new_memo: dict[bytes, int] = {}
+
+    # TODO: implement list and dict extraction to finish up this beast, then move it to C
 
     for i, chunk in enumerate(chunks):
         if chunk[-1:] == codes.MEMO:
