@@ -36,7 +36,7 @@ def partial_pickle(obj: Any, memory: Optional[Memo] = None) -> bytes:
     memory = memory or Memo()
 
     if obj in memory:
-        return get(memory[obj][0])
+        return get(memory[obj])
 
     obj_type: Any = type(obj)
 
