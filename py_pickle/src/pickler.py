@@ -71,29 +71,11 @@ def merge_partials(obj1: bytes, obj2: bytes) -> bytes:
         case (b"", _, b"", _):
             raise ValueError("Invalid Input: Un-mergable objects")
         case _:
-            combined = obj1 + obj2
-
-            chunks = get_chunks(combined)
+            chunks = get_chunks(obj1 + obj2)
 
             temp_memo: dict[bytes, int] = get_memo(chunks)
 
-            sorted_memo = reversed(sorted(temp_memo.keys(), key=len))
-
-            for memoized in sorted_memo:
-                first_idx = combined.find(memoized) + len(memoized)
-
-                combined = combined[:first_idx] + combined[first_idx:].replace(
-                    memoized, get(temp_memo[memoized])
-                )
-
-            result = (
-                codes.EMPTY_LIST
-                + codes.MEMO
-                + codes.MARK
-                + combined
-                + codes.APPENDS
-                + b"."
-            )
+            result = listize(temp_memo, obj1, obj2)
 
     frame_bytes = b"\x95" + pack("<Q", len(result)) if len(result) >= 4 else b""
     return b"\x80\x04" + frame_bytes + result
@@ -131,6 +113,20 @@ def get_memo(chunks: list[bytes]) -> dict[bytes, int]:
                 new_memo[chunk] = len(new_memo) + 1
 
     return new_memo
+
+
+def listize(memory: dict[bytes, int], obj1: bytes, obj2: bytes) -> bytes:
+    combined = obj1 + obj2
+    sorted_memo = reversed(sorted(memory.keys(), key=len))
+
+    for memoized in sorted_memo:
+        first_idx = combined.find(memoized) + len(memoized)
+
+        combined = combined[:first_idx] + combined[first_idx:].replace(
+            memoized, get(memory[memoized])
+        )
+
+    return codes.EMPTY_LIST + codes.MEMO + codes.MARK + combined + codes.APPENDS + b"."
 
 
 def extract_tuple(chunks: list[bytes], idx: int) -> bytes:
