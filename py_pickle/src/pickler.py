@@ -70,12 +70,10 @@ def merge_partials(obj1: bytes, obj2: bytes) -> bytes:
             result = merge_bytes(obj1, identifier_1, obj2, identifier_2)
         case (b"", _, b"", _):
             raise ValueError("Invalid Input: Un-mergable objects")
-        case (b"", *_) | (*_, b"", _):
-            result = (obj1 or obj2) + b"."
         case _:
             temp_memo: dict[Any, Any] = {}
-            chunks: list[bytes] = []
-            combined = obj1 + obj2
+
+            chunks = get_chunks(obj1 + obj2)
 
             for i, chunk in enumerate(chunks):
                 if chunk[-1:] == codes.MEMO:
@@ -143,6 +141,33 @@ def get_chunks(obj: bytes) -> list[bytes]:
         right += 1
 
     return chunks
+
+
+def get_memo(chunks: list[bytes]) -> dict[bytes, int]:
+    new_memo: dict[bytes, int] = {}
+
+    return new_memo
+
+
+def extract_tuple(chunks: list[bytes], idx: int) -> bytes:
+    num_remains = 1
+    curr_idx = idx
+    res = b""
+
+    while num_remains > 0:
+        if chunks[curr_idx][-2:-1] == b"\x85":
+            num_remains += 1
+        elif chunks[curr_idx][-2:-1] == b"\x86":
+            num_remains += 2
+        elif chunks[curr_idx][-2:-1] == b"\x87":
+            num_remains += 3
+
+        res = chunks[curr_idx] + res
+
+        curr_idx -= 1
+        num_remains -= 1
+
+    return res
 
 
 def length_packer(length: int) -> bytes:
