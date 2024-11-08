@@ -11,6 +11,33 @@ EncodeFunction = Callable[[Any], bytes]
 disbatch_table: Dict[Type[Any], EncodeFunction] = {}
 
 
+indicators = [
+    codes.NONE,
+    codes.TRUE,
+    codes.FALSE,
+    codes.SHORT_UNICODE,
+    codes.UNICODE,
+    codes.LONG_UNICODE,
+    codes.BININT,
+    codes.BININT1,
+    codes.BININT2,
+    codes.LONG1,
+    codes.LONG4,
+    codes.BINFLOAT,
+    codes.SHORT_BINBYTES,
+    codes.BINBYTES8,
+    codes.BINBYTES,
+    codes.MARK,
+    codes.EMPTY_DICT,
+    codes.EMPTY_TUPLE,
+    codes.TUPLE1,
+    codes.TUPLE2,
+    codes.TUPLE3,
+    # codes.TUPLE,
+    codes.EMPTY_LIST,
+]
+
+
 def partial_pickle(obj: Any) -> bytes:
     pickled_obj = b""
 
@@ -46,14 +73,46 @@ def merge_partials(obj1: bytes, obj2: bytes) -> bytes:
         case (b"", *_) | (*_, b"", _):
             result = (obj1 or obj2) + b"."
         case _:
-            temp_memo = {}
-            split_obj_1 = obj1.split(codes.MEMO)
+            temp_memo: dict[Any, Any] = {}
+            chunks: list[bytes] = []
+            combined = obj1 + obj2
 
-            for idx, chunk in enumerate(split_obj_1):
-                print(idx, chunk)
+            for i, chunk in enumerate(chunks):
+                if chunk[-1:] == codes.MEMO:
+                    print(f"curr memory {temp_memo}")
+                    print(f">> memoizing {chunk}")
+                    if chunk[-2:-1] == b"\x85":
+                        if chunks[i - 1] + chunks[i] not in temp_memo:
+                            temp_memo[id(chunks[i - 1] + chunks[i])] = (
+                                len(temp_memo) + 1
+                            )
+                        continue
+                    elif chunk[-2:-1] == b"\x86":
+                        if chunks[i - 2] + chunks[i - 1] + chunks[i] not in temp_memo:
+                            temp_memo[chunks[i - 2] + chunks[i - 1] + chunks[i]] = (
+                                len(temp_memo) + 1
+                            )
+                        continue
+                    elif chunk[-2:-1] == b"\x87":
+                        if (
+                            chunks[i - 3] + chunks[i - 2] + chunks[i - 1] + chunks[i]
+                            not in temp_memo
+                        ):
+                            temp_memo[
+                                chunks[i - 3]
+                                + chunks[i - 2]
+                                + chunks[i - 1]
+                                + chunks[i]
+                            ] = len(temp_memo) + 1
+                        continue
 
-            print(split_obj_1)
-            print(obj1, "---------->", obj2)
+                    if chunk not in temp_memo:
+                        temp_memo[chunk] = len(temp_memo) + 1
+
+            print(temp_memo)
+
+            # print(split_obj_1)
+            # print(obj1, "---------->", obj2)
             result = (
                 codes.EMPTY_LIST
                 + codes.MEMO
@@ -66,6 +125,24 @@ def merge_partials(obj1: bytes, obj2: bytes) -> bytes:
 
     frame_bytes = b"\x95" + pack("<Q", len(result)) if len(result) >= 4 else b""
     return b"\x80\x04" + frame_bytes + result
+
+
+def get_chunks(obj: bytes) -> list[bytes]:
+    chunks: list[bytes] = []
+    left, right = 0, 1
+    while right < len(obj):
+        while (
+            right < len(obj)
+            and obj[left : left + 1] in indicators
+            and obj[right : right + 1] not in indicators
+        ):
+            right += 1
+
+        chunks.append(obj[left:right])
+        left = right
+        right += 1
+
+    return chunks
 
 
 def length_packer(length: int) -> bytes:

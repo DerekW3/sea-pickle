@@ -25,7 +25,6 @@ class OPCODE:
     SHORT_BINBYTES = b"C"
     BINBYTES8 = b"\x8e"
     BINBYTES = b"B"
-    BYTEARRAY = b"\x96"
 
     # ARRAY TYPES
     MARK = b"("
