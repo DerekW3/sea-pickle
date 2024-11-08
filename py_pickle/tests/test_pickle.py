@@ -249,6 +249,10 @@ def test_encode_tuple():
         partial_pickle((3, "more", (4, "deep"))),
     ) == pickle.dumps([(1, "text", (2, "nested")), (3, "more", (4, "deep"))])
 
+    assert merge_partials(
+        partial_pickle(((1, "text", True), "text")), partial_pickle((1, "text", True))
+    ) == pickle.dumps([((1, "text", True), "text"), (1, "text", True)])
+
 
 def test_encode_list():
     assert partial_pickle([1, 100]) in pickle.dumps([1, 100])

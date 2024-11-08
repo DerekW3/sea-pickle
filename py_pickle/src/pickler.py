@@ -13,7 +13,18 @@ disbatch_table_memo: Dict[Type[Any], MemoizedFunction] = {}
 disbatch_table_no_memo: Dict[Type[Any], NonMemoizedFunction] = {}
 
 
-def partial_pickle(obj: Any, memory: Optional[Dict[Any, Any]] = None) -> bytes:
+class Memo:
+    def __init__(self) -> None:
+        self.memory: dict[Any, Any] = {}
+
+    def __getitem__(self, position: Any) -> Any:
+        return self.memory[position]
+
+    def memoize(self, obj: bytes):
+        self.memory[id(obj)] = len(obj)
+
+
+def partial_pickle(obj: Any, memory: Optional[Memo] = None) -> bytes:
     pickled_obj = b""
 
     memory = memory or {}
@@ -54,6 +65,11 @@ def merge_partials(obj1: bytes, obj2: bytes) -> bytes:
         case (b"", *_) | (*_, b"", _):
             result = (obj1 or obj2) + b"."
         case _:
+            temp_memo = {}
+            split_obj_1 = obj1.split(codes.MEMO)
+
+            print(split_obj_1)
+            print(obj1, "---------->", obj2)
             result = (
                 codes.EMPTY_LIST
                 + codes.MEMO
@@ -141,12 +157,6 @@ def merge_bytes(
         + result
         + b"."
     )
-
-
-def memoize(memory: Dict[Any, Any], obj: Any) -> bytes:
-    memory[id(obj)] = len(memory), obj
-
-    return codes.MEMO
 
 
 def get(idx: int) -> bytes:
@@ -313,7 +323,7 @@ def encode_tuple(memory: Dict[Any, Any], obj: Tuple[Any, ...]) -> bytes:
         res += codes.MARK
 
     for itm in obj:
-        res += partial_pickle(itm)
+        res += partial_pickle(itm, memory)
 
     match len(obj):
         case 1:
