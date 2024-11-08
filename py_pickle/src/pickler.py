@@ -11,6 +11,9 @@ class Memo:
     def __init__(self) -> None:
         self.memory: dict[Any, Any] = {}
 
+    def __repr__(self) -> str:
+        return str(self.memory)
+
     def __getitem__(self, obj: Any) -> Any:
         return self.memory[id(obj)][0]
 
@@ -18,7 +21,7 @@ class Memo:
         return id(obj) in self.memory
 
     def memoize(self, obj: Any) -> bytes:
-        self.memory[id(obj)] = len(obj), obj
+        self.memory[id(obj)] = len(self.memory) + 1, obj
 
         return codes.MEMO
 
@@ -46,6 +49,8 @@ def partial_pickle(obj: Any, memory: Optional[Memo] = None) -> bytes:
     elif obj_type in disbatch_table_no_memo:
         func = disbatch_table_no_memo[obj_type]
         pickled_obj += func(obj)
+
+    print(memory)
 
     return pickled_obj
 
