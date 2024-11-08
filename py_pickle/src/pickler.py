@@ -71,16 +71,26 @@ def merge_partials(obj1: bytes, obj2: bytes) -> bytes:
         case (b"", _, b"", _):
             raise ValueError("Invalid Input: Un-mergable objects")
         case _:
-            temp_memo: dict[Any, Any] = {}
+            combined = obj1 + obj2
 
-            chunks = get_chunks(obj1 + obj2)
+            chunks = get_chunks(combined)
+
+            temp_memo: dict[bytes, int] = get_memo(chunks)
+
+            sorted_memo = reversed(sorted(temp_memo.keys(), key=len))
+
+            for memoized in sorted_memo:
+                first_idx = combined.find(memoized) + len(memoized)
+
+                combined = combined[:first_idx] + combined[first_idx:].replace(
+                    memoized, get(temp_memo[memoized])
+                )
 
             result = (
                 codes.EMPTY_LIST
                 + codes.MEMO
                 + codes.MARK
-                + obj1
-                + obj2
+                + combined
                 + codes.APPENDS
                 + b"."
             )
