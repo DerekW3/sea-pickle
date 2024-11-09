@@ -73,8 +73,6 @@ def merge_partials(obj1: bytes, obj2: bytes) -> bytes:
         case _:
             chunks = get_chunks(obj1 + obj2)
 
-            print(chunks)
-
             temp_memo: dict[bytes, int] = get_memo(chunks)
 
             result = listize(temp_memo, obj1, obj2)
@@ -123,10 +121,8 @@ def get_chunks(obj: bytes) -> list[bytes]:
 def get_memo(chunks: list[bytes]) -> dict[bytes, int]:
     new_memo: dict[bytes, int] = {}
 
-    # TODO: implement list and dict extraction to finish up this beast, then move it to C
-
     for i, chunk in enumerate(chunks):
-        if chunk[-1:] == codes.MEMO:
+        if chunk[-1:] == codes.MEMO and chunk[:1] != codes.EMPTY_DICT:
             if chunk[-2:-1] in [b"\x85", b"\x86", b"\x87"]:
                 extracted_tuple = extract_tuple(chunks, i)
                 if extracted_tuple not in new_memo:
@@ -195,21 +191,33 @@ def extract_sequence(chunks: list[bytes], idx: int) -> bytes:
         if curr_idx != idx and chunks[curr_idx][:1] == ident:
             num_remains += 1
 
-        print(
-            f"currently examining chunk {curr_idx}, {chunks[curr_idx]} with {num_remains} remaining"
-        )
         match ident:
-            case codes.EMPTY_LIST | codes.EMPTY_DICT:
+            case codes.EMPTY_LIST:
                 num_reduce = 0
                 rev = chunks[curr_idx][::-1]
                 for i in range(len(rev)):
                     if rev[i : i + 1] in [
                         codes.APPEND,
                         codes.APPENDS,
+                    ]:
+                        num_reduce += 1
+                    elif rev[i : i + 1] in [codes.SETITEM, codes.SETITEMS]:
+                        continue
+                    else:
+                        break
+
+                num_remains -= num_reduce
+            case codes.EMPTY_DICT:
+                num_reduce = 0
+                rev = chunks[curr_idx][::-1]
+                for i in range(len(rev)):
+                    if rev[i : i + 1] in [
                         codes.SETITEM,
                         codes.SETITEMS,
                     ]:
                         num_reduce += 1
+                    elif rev[i : i + 1] in [codes.APPEND, codes.APPENDS]:
+                        continue
                     else:
                         break
 
