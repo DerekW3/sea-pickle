@@ -394,3 +394,19 @@ def test_encode_dict():
 
 def test_single_types():
     assert merge_partials(partial_pickle("hello"), b"") == pickle.dumps("hello")
+    assert merge_partials(partial_pickle(""), b"") == pickle.dumps("")
+
+    assert merge_partials(partial_pickle([1, 2, 3]), b"") == pickle.dumps([1, 2, 3])
+
+    assert merge_partials(partial_pickle([]), b"") == pickle.dumps([])
+
+    assert merge_partials(partial_pickle([4, 5, 6]), b"") == pickle.dumps([4, 5, 6])
+
+    assert merge_partials(partial_pickle((7, 8, 9)), b"") == pickle.dumps((7, 8, 9))
+
+    assert merge_partials(partial_pickle(b"byte data"), b"") == pickle.dumps(
+        b"byte data"
+    )
+
+    assert merge_partials(partial_pickle(42), b"") == pickle.dumps(42)
+    assert merge_partials(partial_pickle(3.14), b"") == pickle.dumps(3.14)
