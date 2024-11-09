@@ -54,7 +54,7 @@ def partial_pickle(obj: Any) -> bytes:
     return pickled_obj
 
 
-def merge_partials(obj1: bytes, obj2: bytes) -> bytes:
+def merge_partials(obj1: bytes, obj2: bytes, numerics: bool = False) -> bytes:
     result = b""
     identifier_1 = obj1[:1] if len(obj1) else b""
     identifier_2 = obj2[:1] if len(obj2) else b""
@@ -73,7 +73,7 @@ def merge_partials(obj1: bytes, obj2: bytes) -> bytes:
         case _:
             chunks = get_chunks(obj1 + obj2)
 
-            temp_memo: dict[bytes, int] = get_memo(chunks)
+            temp_memo: dict[bytes, int] = {} if numerics else get_memo(chunks)
 
             result = listize(temp_memo, obj1, obj2)
 
@@ -187,7 +187,7 @@ def extract_sequence(chunks: list[bytes], idx: int) -> bytes:
     curr_idx = idx
     res = b""
 
-    while num_remains > 0:
+    while num_remains > 0 and curr_idx < len(chunks):
         if curr_idx != idx and chunks[curr_idx][:1] == ident:
             num_remains += 1
 
@@ -230,6 +230,9 @@ def extract_sequence(chunks: list[bytes], idx: int) -> bytes:
 
         res += chunks[curr_idx]
         curr_idx += 1
+
+    if num_remains:
+        res = b"]\x94(" if ident == codes.EMPTY_LIST else b"}\x94"
 
     return res
 
