@@ -100,6 +100,9 @@ def get_chunks(obj: bytes) -> list[bytes]:
             case codes.LONG_UNICODE | codes.BINBYTES8:
                 right += unpack("<Q", obj[right : right + 8])[0] + 1
 
+            case codes.EMPTY_LIST:
+                right += 2
+
             case _:
                 pass
 
@@ -129,8 +132,18 @@ def get_memo(chunks: list[bytes]) -> dict[bytes, int]:
                 if extracted_tuple not in new_memo:
                     new_memo[extracted_tuple] = len(new_memo) + 1
                 continue
+            if chunk[:1] == codes.MARK:
+                extracted_sequence = extract_sequence(chunks, i)
+                if extracted_sequence not in new_memo:
+                    new_memo[extracted_sequence] = len(new_memo) + 1
+                continue
             if chunk not in new_memo:
                 new_memo[chunk] = len(new_memo) + 1
+        elif len(chunk) > 1 and chunk[1:2] == codes.MEMO:
+            extracted_sequence = extract_sequence(chunks, i)
+            if extracted_sequence not in new_memo:
+                new_memo[extracted_sequence] = len(new_memo) + 1
+            continue
 
     return new_memo
 
@@ -140,6 +153,8 @@ def listize(memory: dict[bytes, int], obj1: bytes, obj2: bytes) -> bytes:
     sorted_memo = reversed(sorted(memory.keys(), key=len))
 
     for memoized in sorted_memo:
+        if memoized[:1] in [codes.EMPTY_LIST, codes.EMPTY_DICT]:
+            continue
         first_idx = combined.find(memoized) + len(memoized)
 
         combined = combined[:first_idx] + combined[first_idx:].replace(
@@ -177,19 +192,42 @@ def extract_sequence(chunks: list[bytes], idx: int) -> bytes:
     res = b""
 
     while num_remains > 0:
-        if chunks[curr_idx][:1] == ident:
+        if curr_idx != idx and chunks[curr_idx][:1] == ident:
             num_remains += 1
 
+        print(
+            f"currently examining chunk {curr_idx}, {chunks[curr_idx]} with {num_remains} remaining"
+        )
         match ident:
             case codes.EMPTY_LIST:
-                if chunks[curr_idx][-2:-1] in [codes.APPEND, codes.APPENDS]:
-                    num_remains -= 1
+                num_reduce = 0
+                rev = chunks[curr_idx][::-1]
+                for i in range(len(rev)):
+                    if rev[i : i + 1] in [
+                        codes.APPEND,
+                        codes.APPENDS,
+                    ]:
+                        num_reduce += 1
+                    else:
+                        break
+
+                num_remains -= num_reduce
             case codes.MARK:
                 if chunks[curr_idx][-3:-2] == codes.TUPLE:
                     num_remains -= 1
             case codes.EMPTY_DICT:
-                if chunks[curr_idx][-2:-1] in [codes.SETITEM, codes.SETITEMS]:
-                    num_remains -= 1
+                num_reduce = 0
+                rev = chunks[curr_idx][::-1]
+                for i in range(len(rev)):
+                    if rev[i : i + 1] in [
+                        codes.SETITEM,
+                        codes.SETITEMS,
+                    ]:
+                        num_reduce += 1
+                    else:
+                        break
+
+                num_remains -= num_reduce
             case _:
                 pass
 
