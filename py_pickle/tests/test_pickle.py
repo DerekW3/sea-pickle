@@ -444,3 +444,15 @@ def test_no_memo():
     assert merge_partials(
         partial_pickle(42), partial_pickle(3.14), no_memo=True
     ) == pickle.dumps([42, 3.14])
+
+
+def test_no_frame_info():
+    assert merge_partials(
+        partial_pickle([1, 2, 3]),
+        merge_partials(
+            partial_pickle([4, 5, 6]),
+            partial_pickle([7, 8, 9]),
+            no_memo=True,
+            frame_info=False,
+        ),
+    ) == pickle.dumps([[1, 2, 3], [4, 5, 6], [7, 8, 9]])

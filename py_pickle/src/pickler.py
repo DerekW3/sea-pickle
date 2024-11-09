@@ -54,7 +54,9 @@ def partial_pickle(obj: Any) -> bytes:
     return pickled_obj
 
 
-def merge_partials(obj1: bytes, obj2: bytes, no_memo: bool = False) -> bytes:
+def merge_partials(
+    obj1: bytes, obj2: bytes, no_memo: bool = False, frame_info: bool = True
+) -> bytes:
     result = b""
     identifier_1 = obj1[:1] if len(obj1) else b""
     identifier_2 = obj2[:1] if len(obj2) else b""
@@ -75,13 +77,17 @@ def merge_partials(obj1: bytes, obj2: bytes, no_memo: bool = False) -> bytes:
 
             temp_memo: dict[bytes, int] = {} if no_memo else get_memo(chunks)
 
-            if obj1 and obj2:
+            if obj1 and obj2 and frame_info:
                 result = listize(temp_memo, obj1, obj2)
             else:
                 result = obj1 + obj2 + b"."
 
-    frame_bytes = b"\x95" + pack("<Q", len(result)) if len(result) >= 4 else b""
-    return b"\x80\x04" + frame_bytes + result
+    protocol_bytes = b"\x80\x04" if frame_info else b""
+    frame_bytes = (
+        b"\x95" + pack("<Q", len(result)) if len(result) >= 4 and frame_info else b""
+    )
+    result = result if frame_info else result[:-1]
+    return protocol_bytes + frame_bytes + result
 
 
 def get_chunks(obj: bytes) -> list[bytes]:
