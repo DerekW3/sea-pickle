@@ -33,7 +33,7 @@ indicators = [
     codes.TUPLE1,
     codes.TUPLE2,
     codes.TUPLE3,
-    # codes.TUPLE,
+    codes.TUPLE,
     codes.EMPTY_LIST,
 ]
 
@@ -92,13 +92,13 @@ def get_chunks(obj: bytes) -> list[bytes]:
         # OPCODE + text + \x94
         match obj[left : left + 1]:
             case codes.SHORT_UNICODE | codes.SHORT_BINBYTES:
-                right += unpack("<B", obj[right : right + 1])[0]
+                right += unpack("<B", obj[right : right + 1])[0] + 1
 
             case codes.UNICODE | codes.BINBYTES:
-                right += unpack("<I", obj[right : right + 4])[0]
+                right += unpack("<I", obj[right : right + 4])[0] + 1
 
             case codes.LONG_UNICODE | codes.BINBYTES8:
-                right += unpack("<Q", obj[right : right + 8])[0]
+                right += unpack("<Q", obj[right : right + 8])[0] + 1
 
             case _:
                 pass
@@ -166,6 +166,35 @@ def extract_tuple(chunks: list[bytes], idx: int) -> bytes:
 
         curr_idx -= 1
         num_remains -= 1
+
+    return res
+
+
+def extract_sequence(chunks: list[bytes], idx: int) -> bytes:
+    num_remains = 1
+    ident = chunks[idx][:1]
+    curr_idx = idx
+    res = b""
+
+    while num_remains > 0:
+        if chunks[curr_idx][:1] == ident:
+            num_remains += 1
+
+        match ident:
+            case codes.EMPTY_LIST:
+                if chunks[curr_idx][-2:-1] in [codes.APPEND, codes.APPENDS]:
+                    num_remains -= 1
+            case codes.MARK:
+                if chunks[curr_idx][-3:-2] == codes.TUPLE:
+                    num_remains -= 1
+            case codes.EMPTY_DICT:
+                if chunks[curr_idx][-2:-1] in [codes.SETITEM, codes.SETITEMS]:
+                    num_remains -= 1
+            case _:
+                pass
+
+        res += chunks[curr_idx]
+        curr_idx += 1
 
     return res
 
