@@ -1,5 +1,5 @@
 from itertools import islice
-from struct import pack
+from struct import pack, unpack
 from typing import Any, Callable, Dict, List, Tuple, Type
 
 from .opcodes.opcodes import OPCODE
@@ -37,6 +37,8 @@ indicators = [
     codes.EMPTY_LIST,
 ]
 
+string_indicators = [codes.SHORT_UNICODE, codes.UNICODE, codes.LONG_UNICODE]
+
 
 def partial_pickle(obj: Any) -> bytes:
     pickled_obj = b""
@@ -71,6 +73,8 @@ def merge_partials(obj1: bytes, obj2: bytes) -> bytes:
         case _:
             chunks = get_chunks(obj1 + obj2)
 
+            print(chunks)
+
             temp_memo: dict[bytes, int] = get_memo(chunks)
 
             result = listize(temp_memo, obj1, obj2)
@@ -83,6 +87,22 @@ def get_chunks(obj: bytes) -> list[bytes]:
     chunks: list[bytes] = []
     left, right = 0, 1
     while right < len(obj):
+        # string can contain bytes like e, t etc. which can be misinterpreted as indicators
+        # thus we make special case to skip them and ensure that they are in the format of
+        # OPCODE + text + \x94
+        match obj[left : left + 1]:
+            case codes.SHORT_UNICODE:
+                right += unpack("<B", obj[right : right + 1])[0]
+
+            case codes.UNICODE:
+                right += unpack("<I", obj[right : right + 4])[0]
+
+            case codes.LONG_UNICODE:
+                right += unpack("<Q", obj[right : right + 8])[0]
+
+            case _:
+                pass
+
         while (
             right < len(obj)
             and obj[left : left + 1] in indicators
