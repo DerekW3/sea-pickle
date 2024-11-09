@@ -75,7 +75,10 @@ def merge_partials(obj1: bytes, obj2: bytes, numerics: bool = False) -> bytes:
 
             temp_memo: dict[bytes, int] = {} if numerics else get_memo(chunks)
 
-            result = listize(temp_memo, obj1, obj2)
+            if obj1 and obj2:
+                result = listize(temp_memo, obj1, obj2)
+            else:
+                result = obj1 + obj2 + b"."
 
     frame_bytes = b"\x95" + pack("<Q", len(result)) if len(result) >= 4 else b""
     return b"\x80\x04" + frame_bytes + result

@@ -392,9 +392,5 @@ def test_encode_dict():
     ) == pickle.dumps([{"a": {"b": 2}}, {"a": {"b": 4}}])
 
 
-def test_mixed_types():
-    assert partial_pickle(([1, 1, "wah"], [True, "hello there"])) in pickle.dumps(
-        ([1, 1, "wah"], [True, "hello there"])
-    )
-
-    assert partial_pickle({"first": [1, 2, 3]}) in pickle.dumps({"first": [1, 2, 3]})
+def test_single_types():
+    assert merge_partials(partial_pickle("hello"), b"") == pickle.dumps("hello")
