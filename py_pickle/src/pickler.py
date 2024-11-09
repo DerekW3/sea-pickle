@@ -91,13 +91,13 @@ def get_chunks(obj: bytes) -> list[bytes]:
         # thus we make special case to skip them and ensure that they are in the format of
         # OPCODE + text + \x94
         match obj[left : left + 1]:
-            case codes.SHORT_UNICODE:
+            case codes.SHORT_UNICODE | codes.SHORT_BINBYTES:
                 right += unpack("<B", obj[right : right + 1])[0]
 
-            case codes.UNICODE:
+            case codes.UNICODE | codes.BINBYTES:
                 right += unpack("<I", obj[right : right + 4])[0]
 
-            case codes.LONG_UNICODE:
+            case codes.LONG_UNICODE | codes.BINBYTES8:
                 right += unpack("<Q", obj[right : right + 8])[0]
 
             case _:
