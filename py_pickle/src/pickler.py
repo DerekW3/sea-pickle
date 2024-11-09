@@ -199,13 +199,15 @@ def extract_sequence(chunks: list[bytes], idx: int) -> bytes:
             f"currently examining chunk {curr_idx}, {chunks[curr_idx]} with {num_remains} remaining"
         )
         match ident:
-            case codes.EMPTY_LIST:
+            case codes.EMPTY_LIST | codes.EMPTY_DICT:
                 num_reduce = 0
                 rev = chunks[curr_idx][::-1]
                 for i in range(len(rev)):
                     if rev[i : i + 1] in [
                         codes.APPEND,
                         codes.APPENDS,
+                        codes.SETITEM,
+                        codes.SETITEMS,
                     ]:
                         num_reduce += 1
                     else:
@@ -215,19 +217,6 @@ def extract_sequence(chunks: list[bytes], idx: int) -> bytes:
             case codes.MARK:
                 if chunks[curr_idx][-3:-2] == codes.TUPLE:
                     num_remains -= 1
-            case codes.EMPTY_DICT:
-                num_reduce = 0
-                rev = chunks[curr_idx][::-1]
-                for i in range(len(rev)):
-                    if rev[i : i + 1] in [
-                        codes.SETITEM,
-                        codes.SETITEMS,
-                    ]:
-                        num_reduce += 1
-                    else:
-                        break
-
-                num_remains -= num_reduce
             case _:
                 pass
 

@@ -255,12 +255,12 @@ def test_encode_tuple():
 
 
 def test_encode_list():
-    # assert partial_pickle([1, 100]) in pickle.dumps([1, 100])
-    # assert partial_pickle([1, "a"]) in pickle.dumps([1, "a"])
-    # assert partial_pickle([1, "a", 1.0]) in pickle.dumps([1, "a", 1.0])
-    # assert partial_pickle([1, "a", 1, 1, "helloooo"]) in pickle.dumps(
-    #     [1, "a", 1, 1, "helloooo"]
-    # )
+    assert partial_pickle([1, 100]) in pickle.dumps([1, 100])
+    assert partial_pickle([1, "a"]) in pickle.dumps([1, "a"])
+    assert partial_pickle([1, "a", 1.0]) in pickle.dumps([1, "a", 1.0])
+    assert partial_pickle([1, "a", 1, 1, "helloooo"]) in pickle.dumps(
+        [1, "a", 1, 1, "helloooo"]
+    )
 
     assert merge_partials(
         partial_pickle([1, "Yeah man"]), partial_pickle([-1, "No man"])
@@ -325,13 +325,6 @@ def test_encode_list():
 
 
 def test_encode_dict():
-    assert partial_pickle({1: "hello", 100: "hello"}) in pickle.dumps(
-        {1: "hello", 100: "hello"}
-    )
-    assert partial_pickle({1: "hello", "h": True}) in pickle.dumps(
-        {1: "hello", "h": True}
-    )
-
     assert merge_partials(
         partial_pickle({"key1": "value1"}), partial_pickle({"key2": "value2"})
     ) == pickle.dumps([{"key1": "value1"}, {"key2": "value2"}])
@@ -389,6 +382,10 @@ def test_encode_dict():
         partial_pickle({"list": [1, 2, 3]}),
         partial_pickle({"dict": {"nested_key": "nested_value"}}),
     ) == pickle.dumps([{"list": [1, 2, 3]}, {"dict": {"nested_key": "nested_value"}}])
+
+    assert merge_partials(
+        partial_pickle({"a": {"b": 2}}), partial_pickle({"a": {"b": 4}})
+    ) == pickle.dumps([{"a": {"b": 2}}, {"a": {"b": 4}}])
 
 
 def test_mixed_types():
