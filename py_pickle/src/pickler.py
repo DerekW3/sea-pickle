@@ -54,7 +54,7 @@ def partial_pickle(obj: Any) -> bytes:
     return pickled_obj
 
 
-def merge_partials(obj1: bytes, obj2: bytes, numerics: bool = False) -> bytes:
+def merge_partials(obj1: bytes, obj2: bytes, no_memo: bool = False) -> bytes:
     result = b""
     identifier_1 = obj1[:1] if len(obj1) else b""
     identifier_2 = obj2[:1] if len(obj2) else b""
@@ -71,9 +71,9 @@ def merge_partials(obj1: bytes, obj2: bytes, numerics: bool = False) -> bytes:
         case (b"", _, b"", _):
             raise ValueError("Invalid Input: Un-mergable objects")
         case _:
-            chunks = get_chunks(obj1 + obj2)
+            chunks = [] if no_memo else get_chunks(obj1 + obj2)
 
-            temp_memo: dict[bytes, int] = {} if numerics else get_memo(chunks)
+            temp_memo: dict[bytes, int] = {} if no_memo else get_memo(chunks)
 
             if obj1 and obj2:
                 result = listize(temp_memo, obj1, obj2)
