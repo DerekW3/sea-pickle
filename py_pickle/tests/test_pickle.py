@@ -324,8 +324,11 @@ def test_encode_list():
     ) == pickle.dumps([[], ["only_key", "only_value"]])
 
     assert merge_partials(
-        partial_pickle([[1, "text", True], "text"]), partial_pickle([1, "text", True])
-    ) == pickle.dumps([[[1, "text", True], "text"], [1, "text", True]])
+        partial_pickle([[1, "text", True], "text", "bar", ["text", "bar"]]),
+        partial_pickle([1, "text", True]),
+    ) == pickle.dumps(
+        [[[1, "text", True], "text", "bar", ["text", "bar"]], [1, "text", True]]
+    )
 
 
 def test_encode_dict():
