@@ -11,3 +11,16 @@ PyObject *partial_pickle(PyObject *self, PyObject *args) {
 
   Py_RETURN_NONE;
 }
+
+PyObject *merge_partials(PyObject *self, PyObject *args) {
+  const char *obj1;
+  const char *obj2;
+  int no_memo = 0;
+  int frame_info = 1;
+
+  if (!PyArg_ParseTuple(args, "ss|ii", &obj1, &obj2, &no_memo, &frame_info)) {
+    return NULL;
+  }
+
+  Py_RETURN_NONE;
+}
