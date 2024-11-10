@@ -1,4 +1,6 @@
 #include "sea_pickle.h"
+#include <bytesobject.h>
+#include <listobject.h>
 #include <modsupport.h>
 #include <object.h>
 
@@ -24,3 +26,5 @@ PyObject *merge_partials(PyObject *self, PyObject *args) {
 
   Py_RETURN_NONE;
 }
+
+static PyObject *get_chunks(PyBytesObject *obj) { Py_RETURN_NONE; }
