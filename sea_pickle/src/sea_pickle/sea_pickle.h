@@ -66,7 +66,7 @@ static PyObject* length_packer(PyObject* length);
 static PyObject* get(PyObject* idx);
 static PyObject* merge_strings(PyObject* str_1, PyObject* identifier_1, PyObject* str_2, PyObject* identifier_2);
 static PyObject* merge_bytes(PyObject* byte_str_1, PyObject* identifier_1, PyObject* byte_str_2, PyObject* identifier_2);
-static PyObject* encode_none(PyObject* obj);
+static PyObject* encode_none();
 static PyObject* encode_bool(PyObject* obj);
 static PyObject* encode_string(PyObject* obj);
 static PyObject* encode_float(PyObject* obj);
