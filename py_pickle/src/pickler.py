@@ -451,6 +451,14 @@ def memoize():
 
 
 def get(idx: int) -> bytes:
+    """gives the encoded index used in memoization.
+
+    Args:
+        idx (int): idx to encode.
+
+    Returns:
+        bytes: bytes representing the binget operation.
+    """
     if idx < 256:
         return codes.BINGET + pack("<B", idx)
     else:
