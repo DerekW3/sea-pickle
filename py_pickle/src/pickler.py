@@ -497,6 +497,14 @@ disbatch_table[bool] = encode_bool
 
 
 def encode_string(obj: str) -> bytes:
+    """encodes a string object.
+
+    Args:
+        obj (str): the object to be encoded.
+
+    Returns:
+        bytes: the encoded string with proper opcodes.
+    """
     res = b""
     utf_string: bytes = obj.encode("utf-8", "surrogatepass")
     length: int = len(utf_string)
