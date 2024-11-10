@@ -610,6 +610,14 @@ disbatch_table[bytes] = encode_bytes
 
 
 def add_batch(items: Any) -> bytes:
+    """recursively encode items within a list.
+
+    Args:
+        items (Any): the items within the list.
+
+    Returns:
+        bytes: the items recursively encoded.
+    """
     it = iter(items)
 
     result = b""
@@ -633,6 +641,14 @@ def add_batch(items: Any) -> bytes:
 
 
 def set_batch(items: Any) -> bytes:
+    """recursively encodes the items within a dictionary.
+
+    Args:
+        items (Any): the items to be encoded.
+
+    Returns:
+        bytes: the recursively encoded items.
+    """
     it = iter(items)
 
     result = b""
@@ -659,6 +675,14 @@ def set_batch(items: Any) -> bytes:
 
 
 def encode_tuple(obj: Tuple[Any, ...]) -> bytes:
+    """encodes a tuple object.
+
+    Args:
+        obj (Tuple[Any, ...]): the tuple object to be encoded.
+
+    Returns:
+        bytes: the recursively encoded tuple object.
+    """
     res = b""
 
     if not obj:
@@ -689,6 +713,14 @@ disbatch_table[tuple] = encode_tuple
 
 
 def encode_list(obj: List[Any]) -> bytes:
+    """encodes a list object.
+
+    Args:
+        obj (List[Any]): the list to be encoded.
+
+    Returns:
+        bytes: the recursively encoded list object.
+    """
     res = b""
 
     res += codes.EMPTY_LIST
@@ -704,6 +736,14 @@ disbatch_table[list] = encode_list
 
 
 def encode_dict(obj: Dict[Any, Any]) -> bytes:
+    """encodes a dictionary object.
+
+    Args:
+        obj (Dict[Any, Any]): the dictionary to be encoded.
+
+    Returns:
+        bytes: the recursively encoded list object.
+    """
     res = b""
 
     res += codes.EMPTY_DICT
