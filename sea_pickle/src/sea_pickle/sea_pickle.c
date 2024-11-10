@@ -62,7 +62,9 @@ static PyBytesObject *merge_bytes(PyBytesObject *byte_str_1,
   Py_RETURN_NONE;
 }
 
-static PyBytesObject *encode_none(PyObject *obj) { Py_RETURN_NONE; }
+static PyBytesObject *encode_none() {
+  return PyBytes_FromStringAndSize((const char *)NONE, sizeof(NONE));
+}
 
 static PyBytesObject *encode_bool(PyObject *obj) { Py_RETURN_NONE; }
 

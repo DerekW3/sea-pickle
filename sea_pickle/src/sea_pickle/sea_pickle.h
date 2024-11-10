@@ -2,10 +2,6 @@
 #define SEAPICKLE_H
 
 #include <Python.h>
-#include <bytesobject.h>
-#include <floatobject.h>
-#include <listobject.h>
-#include <object.h>
 #include <stdint.h>
 
 typedef enum {
@@ -57,28 +53,29 @@ typedef enum {
   EMPTY_LIST = ']'
 } OPCODES;
 
+
 PyObject* partial_pickle(PyObject* self, PyObject* args);
 PyObject* merge_partials(PyObject* self, PyObject* args);
 
-static PyListObject* get_chunks(PyBytesObject* obj);
-static PyDictObject* get_memo(PyListObject* chunks);
-static PyBytesObject* listize(PyDictObject* memory, PyBytesObject* obj1, PyBytesObject* obj2);
-static PyBytesObject* extract_tuple(PyListObject* chunks, PyObject* idx);
-static PyBytesObject* extract_sequence(PyListObject* chunks, PyObject* idx);
-static PyBytesObject* length_packer(PyObject* length);
-static PyBytesObject* get(PyObject* idx);
-static PyBytesObject* merge_strings(PyBytesObject* str_1, PyBytesObject* identifier_1, PyBytesObject* str_2, PyBytesObject* identifier_2);
-static PyBytesObject* merge_bytes(PyBytesObject* byte_str_1, PyBytesObject* identifier_1, PyBytesObject* byte_str_2, PyBytesObject* identifier_2);
-static PyBytesObject* encode_none(PyObject* obj);
-static PyBytesObject* encode_bool(PyObject* obj);
-static PyBytesObject* encode_string(const char* obj);
-static PyBytesObject* encode_float(PyFloatObject* obj);
-static PyBytesObject* encode_long(PyObject* obj);
-static PyBytesObject* encode_bytes(PyBytesObject* obj);
-static PyBytesObject* encode_tuple(PyTupleObject* obj);
-static PyBytesObject* encode_list(PyListObject* obj);
-static PyBytesObject* encode_dict(PyDictObject* obj);
-static PyBytesObject* add_batch(PyObject* items);
-static PyBytesObject* set_batch(PyObject* items);
+static PyObject* get_chunks(PyObject* obj);
+static PyObject* get_memo(PyObject* chunks);
+static PyObject* listize(PyObject* memory, PyObject* obj1, PyObject* obj2);
+static PyObject* extract_tuple(PyObject* chunks, PyObject* idx);
+static PyObject* extract_sequence(PyObject* chunks, PyObject* idx);
+static PyObject* length_packer(PyObject* length);
+static PyObject* get(PyObject* idx);
+static PyObject* merge_strings(PyObject* str_1, PyObject* identifier_1, PyObject* str_2, PyObject* identifier_2);
+static PyObject* merge_bytes(PyObject* byte_str_1, PyObject* identifier_1, PyObject* byte_str_2, PyObject* identifier_2);
+static PyObject* encode_none(PyObject* obj);
+static PyObject* encode_bool(PyObject* obj);
+static PyObject* encode_string(PyObject* obj);
+static PyObject* encode_float(PyObject* obj);
+static PyObject* encode_long(PyObject* obj);
+static PyObject* encode_bytes(PyObject* obj);
+static PyObject* encode_tuple(PyObject* obj);
+static PyObject* encode_list(PyObject* obj);
+static PyObject* encode_dict(PyObject* obj);
+static PyObject* add_batch(PyObject* items);
+static PyObject* set_batch(PyObject* items);
 
 #endif
