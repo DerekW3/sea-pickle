@@ -53,4 +53,24 @@ typedef enum {
   EMPTY_LIST = ']'
 } OPCODES;
 
+PyObject* partial_pickle(PyObject* self, PyObject* args);
+PyObject* merge_partials(PyObject* self, PyObject* args);
+
+static PyObject* get_chunks(PyObject* obj);
+static PyObject* get_memo(PyObject* chunks);
+static PyObject* listize(PyObject* memory, PyObject* obj1, PyObject* obj2);
+static PyObject* merge_strings(PyObject* str_1, PyObject* identifier_1, PyObject* str_2, PyObject* identifier_2);
+static PyObject* merge_bytes(PyObject* byte_str_1, PyObject* identifier_1, PyObject* byte_str_2, PyObject* identifier_2);
+static PyObject* encode_none(PyObject* obj);
+static PyObject* encode_bool(PyObject* obj);
+static PyObject* encode_string(PyObject* obj);
+static PyObject* encode_float(PyObject* obj);
+static PyObject* encode_long(PyObject* obj);
+static PyObject* encode_bytes(PyObject* obj);
+static PyObject* encode_tuple(PyObject* obj);
+static PyObject* encode_list(PyObject* obj);
+static PyObject* encode_dict(PyObject* obj);
+static PyObject* add_batch(PyObject* items);
+static PyObject* set_batch(PyObject* items);
+
 #endif
