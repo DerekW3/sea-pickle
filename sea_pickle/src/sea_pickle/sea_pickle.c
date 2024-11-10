@@ -1,8 +1,10 @@
 #include "sea_pickle.h"
+#include <boolobject.h>
 #include <bytesobject.h>
 #include <listobject.h>
 #include <modsupport.h>
 #include <object.h>
+#include <pyerrors.h>
 
 PyObject *partial_pickle(PyObject *self, PyObject *args) {
   PyObject *obj;
@@ -61,7 +63,18 @@ static PyObject *encode_none() {
   return PyBytes_FromStringAndSize((const char *)NONE, sizeof(NONE));
 }
 
-static PyObject *encode_bool(PyObject *obj) { Py_RETURN_NONE; }
+static PyObject *encode_bool(PyObject *obj) {
+  if (!PyBool_Check(obj)) {
+    PyErr_SetString(PyExc_TypeError, "Expected a bool type.");
+    return NULL;
+  };
+
+  if (obj == Py_True) {
+    return PyBytes_FromStringAndSize((const char *)TRUE, sizeof(TRUE));
+  } else {
+    return PyBytes_FromStringAndSize((const char *)FALSE, sizeof(FALSE));
+  }
+}
 
 static PyObject *encode_string(PyObject *obj) { Py_RETURN_NONE; }
 
