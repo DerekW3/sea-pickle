@@ -1,7 +1,7 @@
 [project]
 name = "sea-pickle"
 version = "0.1.0"
-description = "Add your description here"
+description = "A true C pickle"
 authors = [
     { name = "DerekW3", email = "92753567+DerekW3@users.noreply.github.com" },
 ]
@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">= 3.8"
 
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools", "cython"]
 build-backend = "setuptools.build_meta"
 
 [tool.rye]
