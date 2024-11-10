@@ -398,6 +398,18 @@ def merge_strings(
 def merge_bytes(
     byte_str_1: bytes, identifier_1: bytes, byte_str_2: bytes, identifier_2: bytes
 ) -> bytes:
+    """protocol to merge two encoded bytes objects into one.
+
+    Args:
+        byte_str_1 (bytes): the first encoded byte string
+        identifier_1 (bytes): the opcode corresponding to the first bytes object
+            varying based on length.
+        byte_str_2 (bytes): the second encoded byte string
+        identifier_2 (bytes): the opcode corresponding to the second bytes object.
+
+    Returns:
+        bytes: the encoded combined bytes object
+    """
     result = b""
     len_bytes_1 = (
         1
