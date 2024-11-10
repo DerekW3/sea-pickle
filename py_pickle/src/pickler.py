@@ -172,6 +172,18 @@ def get_chunks(obj: bytes) -> list[bytes]:
 
 
 def get_memo(chunks: list[bytes]) -> dict[bytes, int]:
+    """takes a list of chunks returned from get_chunks
+        and returns a dictionary representing the memoization
+        of the encoded object. Used for merging.
+
+    Args:
+        chunks (list[bytes]): chunks of bytes each representing
+            a sub-object of the encoded object. Acquired with
+            get_chunks
+
+    Returns:
+        dict[bytes, int]: reconstructed memoization dictionary
+    """
     new_memo: dict[bytes, int] = {}
 
     for i, chunk in enumerate(chunks):
