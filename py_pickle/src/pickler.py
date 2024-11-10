@@ -466,6 +466,14 @@ def get(idx: int) -> bytes:
 
 
 def encode_none(obj: None) -> bytes:
+    """encode a None object.
+
+    Args:
+        obj (None): the none object.
+
+    Returns:
+        bytes: the none object encoded.
+    """
     if obj is None:
         return codes.NONE
 
@@ -474,6 +482,14 @@ disbatch_table[type(None)] = encode_none
 
 
 def encode_bool(obj: bool) -> bytes:
+    """encodes a bool object.
+
+    Args:
+        obj (bool): the bool object to be encoded.
+
+    Returns:
+        bytes: the opcode corresponding to the bool object.
+    """
     return codes.TRUE if obj else codes.FALSE
 
 
