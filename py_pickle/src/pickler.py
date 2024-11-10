@@ -338,6 +338,15 @@ def extract_sequence(chunks: list[bytes], idx: int) -> bytes:
 
 
 def length_packer(length: int) -> bytes:
+    """used to pack the length of an object
+        into bytes using the proper format.
+
+    Args:
+        length (int): the length of the object
+
+    Returns:
+        bytes: the encoded length of the object
+    """
     if length < 256:
         return pack("<B", length)
     elif length > 0xFFFFFFFF:
