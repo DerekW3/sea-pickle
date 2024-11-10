@@ -1,6 +1,7 @@
 #ifndef SEAPICKLE_H
 #define SEAPICKLE_H
 
+#include <Python.h>
 #include <stdint.h>
 
 typedef enum {
