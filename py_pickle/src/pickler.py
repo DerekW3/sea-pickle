@@ -358,6 +358,19 @@ def length_packer(length: int) -> bytes:
 def merge_strings(
     str_1: bytes, identifier_1: bytes, str_2: bytes, identifier_2: bytes
 ) -> bytes:
+    """protocol for merging two strings in merge_partials.
+
+    Args:
+        str_1 (bytes): the first encoded string
+        identifier_1 (bytes): the opcode corresponding to the string
+            which varies based on string length.
+        str_2 (bytes): the second encoded string
+        identifier_2 (bytes): the opcode corresponding to the second
+            string.
+
+    Returns:
+        bytes: the combined string encoded
+    """
     result = b""
     len_bytes_1 = 1 if identifier_1 == b"\x8c" else 4 if identifier_1 == b"X" else 8
     len_bytes_2 = 1 if identifier_2 == b"\x8c" else 4 if identifier_2 == b"X" else 8
