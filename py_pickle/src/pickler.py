@@ -210,6 +210,19 @@ def get_memo(chunks: list[bytes]) -> dict[bytes, int]:
 
 
 def listize(memory: dict[bytes, int], obj1: bytes, obj2: bytes) -> bytes:
+    """takes two objects and returns the encoded list containing
+        the two passed objects.
+
+    Args:
+        memory (dict[bytes, int]): the reconstructed memory from
+            get_memo.
+        obj1 (bytes): the first encoded object (put at idx 0)
+        obj2 (bytes): the second encoded object
+
+    Returns:
+        bytes: the object combined into a list and properly
+            memoized.
+    """
     combined = obj1 + obj2
     sorted_memo = reversed(sorted(memory.keys(), key=len))
 
