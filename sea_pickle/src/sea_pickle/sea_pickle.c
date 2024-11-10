@@ -27,61 +27,54 @@ PyObject *merge_partials(PyObject *self, PyObject *args) {
   Py_RETURN_NONE;
 }
 
-static PyListObject *get_chunks(PyBytesObject *obj) { Py_RETURN_NONE; }
+static PyObject *get_chunks(PyObject *obj) { Py_RETURN_NONE; }
 
-static PyDictObject *get_memo(PyListObject *chunks) { Py_RETURN_NONE; }
+static PyObject *get_memo(PyObject *chunks) { Py_RETURN_NONE; }
 
-static PyBytesObject *listize(PyDictObject *memory, PyBytesObject *obj1,
-                              PyBytesObject *obj2) {
+static PyObject *listize(PyObject *memory, PyObject *obj1, PyObject *obj2) {
   Py_RETURN_NONE;
 }
 
-static PyBytesObject *extract_tuple(PyListObject *chunks, PyObject *idx) {
+static PyObject *extract_tuple(PyObject *chunks, PyObject *idx) {
   Py_RETURN_NONE;
 }
 
-static PyBytesObject *extract_sequence(PyListObject *chunks, PyObject *idx) {
+static PyObject *extract_sequence(PyObject *chunks, PyObject *idx) {
   Py_RETURN_NONE;
 }
 
-static PyBytesObject *length_packer(PyObject *length) { Py_RETURN_NONE; }
+static PyObject *length_packer(PyObject *length) { Py_RETURN_NONE; }
 
-static PyBytesObject *get(PyObject *idx) { Py_RETURN_NONE; }
+static PyObject *get(PyObject *idx) { Py_RETURN_NONE; }
 
-static PyBytesObject *merge_strings(PyBytesObject *str_1,
-                                    PyBytesObject *identifier_1,
-                                    PyBytesObject *str_2,
-                                    PyBytesObject *identifier_2) {
+static PyObject *merge_strings(PyObject *str_1, PyObject *identifier_1,
+                               PyObject *str_2, PyObject *identifier_2) {
   Py_RETURN_NONE;
 }
 
-static PyBytesObject *merge_bytes(PyBytesObject *byte_str_1,
-                                  PyBytesObject *identifier_1,
-                                  PyBytesObject *byte_str_2,
-                                  PyBytesObject *identifier_2) {
+static PyObject *merge_bytes(PyObject *byte_str_1, PyObject *identifier_1,
+                             PyObject *byte_str_2, PyObject *identifier_2) {
   Py_RETURN_NONE;
 }
 
-static PyBytesObject *encode_none() {
-  return PyBytes_FromStringAndSize((const char *)NONE, sizeof(NONE));
-}
+static PyObject *encode_none(PyObject *obj) { Py_RETURN_NONE; }
 
-static PyBytesObject *encode_bool(PyObject *obj) { Py_RETURN_NONE; }
+static PyObject *encode_bool(PyObject *obj) { Py_RETURN_NONE; }
 
-static PyBytesObject *encode_string(const char *obj) { Py_RETURN_NONE; }
+static PyObject *encode_string(PyObject *obj) { Py_RETURN_NONE; }
 
-static PyBytesObject *encode_float(PyFloatObject *obj) { Py_RETURN_NONE; }
+static PyObject *encode_float(PyObject *obj) { Py_RETURN_NONE; }
 
-static PyBytesObject *encode_long(PyObject *obj) { Py_RETURN_NONE; }
+static PyObject *encode_long(PyObject *obj) { Py_RETURN_NONE; }
 
-static PyBytesObject *encode_bytes(PyBytesObject *obj) { Py_RETURN_NONE; }
+static PyObject *encode_bytes(PyObject *obj) { Py_RETURN_NONE; }
 
-static PyBytesObject *encode_tuple(PyTupleObject *obj) { Py_RETURN_NONE; }
+static PyObject *encode_tuple(PyObject *obj) { Py_RETURN_NONE; }
 
-static PyBytesObject *encode_list(PyListObject *obj) { Py_RETURN_NONE; }
+static PyObject *encode_list(PyObject *obj) { Py_RETURN_NONE; }
 
-static PyBytesObject *encode_dict(PyDictObject *obj) { Py_RETURN_NONE; }
+static PyObject *encode_dict(PyObject *obj) { Py_RETURN_NONE; }
 
-static PyBytesObject *add_batch(PyObject *items) { Py_RETURN_NONE; }
+static PyObject *add_batch(PyObject *items) { Py_RETURN_NONE; }
 
-static PyBytesObject *set_batch(PyObject *items) { Py_RETURN_NONE; }
+static PyObject *set_batch(PyObject *items) { Py_RETURN_NONE; }
