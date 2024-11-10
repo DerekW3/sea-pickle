@@ -124,6 +124,17 @@ def merge_partials(
 
 
 def get_chunks(obj: bytes) -> list[bytes]:
+    """takes encoded object and separates it into a list
+        of bytes objects, each indicating an independent
+        object being encoded.
+
+    Args:
+        obj (bytes): the encoded object to split
+
+    Returns:
+        list[bytes]: chunks corresponding to the items
+            that construct obj
+    """
     chunks: list[bytes] = []
     left, right = 0, 1
     while right < len(obj):
