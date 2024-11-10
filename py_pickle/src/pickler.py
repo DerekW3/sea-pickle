@@ -583,6 +583,14 @@ disbatch_table[int] = encode_long
 
 
 def encode_bytes(obj: bytes) -> bytes:
+    """encodes a bytes object.
+
+    Args:
+        obj (bytes): the bytes object to be encoded.
+
+    Returns:
+        bytes: the properly encoded bytes object.
+    """
     res = b""
     n = len(obj)
 
