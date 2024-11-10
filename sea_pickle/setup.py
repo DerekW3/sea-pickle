@@ -1,7 +1,11 @@
 from setuptools import Extension, setup
 
 ext_modules = [
-    Extension("sea_pickle.seapickle", sources=["src/sea_pickle//sea_pickle.c"])
+    Extension(
+        "sea_pickle.seapickle",
+        sources=["src/sea_pickle//sea_pickle.c"],
+        include_dirs=["src/sea_pickle"],
+    )
 ]
 
 setup(
