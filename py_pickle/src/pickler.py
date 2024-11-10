@@ -41,6 +41,18 @@ string_indicators = [codes.SHORT_UNICODE, codes.UNICODE, codes.LONG_UNICODE]
 
 
 def partial_pickle(obj: Any) -> bytes:
+    """pickle an object without memoization or frame information for merging
+        with merge_partials
+
+    Args:
+        obj (Any): the object to pickle
+
+    Raises:
+        ValueError: If the type is not supported for partial pickling
+
+    Returns:
+        bytes: the object pickled without memoization or frame information
+    """
     pickled_obj = b""
 
     obj_type: Any = type(obj)
@@ -49,7 +61,7 @@ def partial_pickle(obj: Any) -> bytes:
         func = disbatch_table[obj_type]
         pickled_obj += func(obj)
     else:
-        raise ValueError("Non-pickleable objecty")
+        raise ValueError("Non-pickleable object")
 
     return pickled_obj
 
