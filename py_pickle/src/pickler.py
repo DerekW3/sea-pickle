@@ -524,6 +524,14 @@ disbatch_table[str] = encode_string
 
 
 def encode_float(obj: float) -> bytes:
+    """encodes a float object.
+
+    Args:
+        obj (float): the float object to encode.
+
+    Returns:
+        bytes: the encoded object.
+    """
     return codes.BINFLOAT + pack(">d", obj)
 
 
@@ -531,6 +539,15 @@ disbatch_table[float] = encode_float
 
 
 def encode_long(obj: int) -> bytes:
+    """encodes an integer.
+
+    Args:
+        obj (int): the integer object to be encoded.
+
+    Returns:
+        bytes: the properly encoded object varying with
+            size and value.
+    """
     if obj >= 0:
         if obj <= 0xFF:
             return codes.BININT1 + pack("<B", obj)
