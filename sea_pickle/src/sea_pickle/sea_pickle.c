@@ -1,6 +1,8 @@
 #include "sea_pickle.h"
 #include <boolobject.h>
 #include <bytesobject.h>
+#include <cstring>
+#include <floatobject.h>
 #include <listobject.h>
 #include <modsupport.h>
 #include <object.h>
@@ -73,9 +75,9 @@ static PyObject *encode_bool(PyObject *obj) {
   };
 
   if (obj == Py_True) {
-    return PyBytes_FromStringAndSize((const char *)TRUE, sizeof(TRUE));
+    return PyBytes_FromStringAndSize((char *)TRUE, sizeof(TRUE));
   } else {
-    return PyBytes_FromStringAndSize((const char *)FALSE, sizeof(FALSE));
+    return PyBytes_FromStringAndSize((char *)FALSE, sizeof(FALSE));
   }
 }
 
@@ -127,7 +129,31 @@ static PyObject *encode_string(PyObject *obj) {
   return result;
 }
 
-static PyObject *encode_float(PyObject *obj) { Py_RETURN_NONE; }
+static PyObject *encode_float(PyObject *obj) {
+  if (!PyFloat_Check(obj)) {
+    PyErr_SetString(PyExc_TypeError, "Expected a float object");
+    return NULL;
+  }
+
+  double value = PyFloat_AsDouble(obj);
+  if (value == -1.0 && PyErr_Occurred()) {
+    return NULL;
+  }
+
+  PyObject *result = PyBytes_FromStringAndSize(NULL, 0);
+  if (result == NULL) {
+    return NULL;
+  }
+
+  unsigned char packed_float[8];
+  memcpy(packed_float, &value, sizeof(double));
+
+  PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((char *)BINFLOAT, 1));
+  PyBytes_ConcatAndDel(&result,
+                       PyBytes_FromStringAndSize((char *)packed_float, 8));
+
+  return result;
+}
 
 static PyObject *encode_long(PyObject *obj) { Py_RETURN_NONE; }
 
