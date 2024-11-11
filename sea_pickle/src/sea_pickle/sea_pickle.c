@@ -232,7 +232,51 @@ static PyObject *encode_long(PyObject *obj) {
   return result;
 }
 
-static PyObject *encode_bytes(PyObject *obj) { Py_RETURN_NONE; }
+static PyObject *encode_bytes(PyObject *obj) {
+  if (!PyBytes_Check(obj)) {
+    PyErr_SetString(PyExc_TypeError, "Expected a bytes type.");
+    return NULL;
+  }
+
+  PyObject *bytes_obj = PyBytes_FromObject(obj);
+  if (bytes_obj == NULL) {
+    return NULL;
+  }
+
+  Py_ssize_t length = PyBytes_Size(bytes_obj);
+  char *bytes_str = PyBytes_AsString(bytes_obj);
+
+  PyObject *result = PyBytes_FromStringAndSize(NULL, 0);
+  if (result == NULL) {
+    Py_DECREF(bytes_obj);
+    return NULL;
+  }
+
+  if (length < 256) {
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((char *)SHORT_BINBYTES, 1));
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((char *)&length, 1));
+  } else if (length > 0xFFFFFFFFF) {
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((char *)BINBYTES8, 1));
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((char *)&length, 8));
+  } else {
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((char *)BINBYTES, 1));
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((char *)&length, 4));
+  }
+
+  PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize(bytes_str, length));
+
+  PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((char *)MEMO, 1));
+
+  Py_DECREF(bytes_obj);
+
+  return result;
+}
 
 static PyObject *encode_tuple(PyObject *obj) { Py_RETURN_NONE; }
 
