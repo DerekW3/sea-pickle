@@ -301,25 +301,18 @@ static PyObject *encode_tuple(PyObject *self, PyObject *obj) {
     PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((char *)MARK, 1));
   }
 
-  PyObject *iter = PyObject_GetIter(obj);
-  PyObject *item;
-  if (iter == NULL) {
-    return NULL;
-  }
-
-  while ((item = PyIter_Next(iter))) {
+  for (Py_ssize_t i = 0; i < length; i++) {
+    PyObject *item = PyTuple_GetItem(obj, i);
     PyObject *encoded = partial_pickle(self, item);
     Py_DECREF(item);
     if (encoded == NULL) {
       Py_DECREF(result);
-      Py_DECREF(iter);
     }
 
     PyObject *encoded_bytes = PyBytes_FromObject(encoded);
     Py_DECREF(encoded);
     if (encoded_bytes == NULL) {
       Py_DECREF(result);
-      Py_DECREF(iter);
     }
 
     PyBytes_ConcatAndDel(&result, encoded_bytes);
@@ -328,12 +321,16 @@ static PyObject *encode_tuple(PyObject *self, PyObject *obj) {
   switch (length) {
   case 1:
     PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((char *)TUPLE1, 1));
+    break;
   case 2:
     PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((char *)TUPLE2, 1));
+    break;
   case 3:
     PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((char *)TUPLE3, 1));
+    break;
   default:
     PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((char *)TUPLE, 1));
+    break;
   }
 
   PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((char *)MEMO, 1));
