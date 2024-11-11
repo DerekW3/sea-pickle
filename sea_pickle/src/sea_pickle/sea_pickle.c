@@ -441,6 +441,7 @@ static PyObject *encode_dict(PyObject *self, PyObject *obj) {
         if (kv_pair == NULL || !PyTuple_Check(kv_pair) ||
             PyTuple_Size(kv_pair) != 2) {
           Py_DECREF(result);
+          Py_DECREF(dict_items);
           return NULL;
         }
 
@@ -448,6 +449,7 @@ static PyObject *encode_dict(PyObject *self, PyObject *obj) {
         PyObject *value = PyTuple_GetItem(kv_pair, 1);
         if (key == NULL || value == NULL) {
           Py_DECREF(result);
+          Py_DECREF(dict_items);
           return NULL;
         }
 
@@ -460,6 +462,7 @@ static PyObject *encode_dict(PyObject *self, PyObject *obj) {
         PyObject *encoded_value = partial_pickle(self, value);
         if (encoded_value == NULL) {
           Py_DECREF(result);
+          Py_DECREF(dict_items);
           Py_DECREF(encoded_key);
           return NULL;
         }
@@ -495,6 +498,7 @@ static PyObject *encode_dict(PyObject *self, PyObject *obj) {
       if (kv_pair == NULL || !PyTuple_Check(kv_pair) ||
           PyTuple_Size(kv_pair) != 2) {
         Py_DECREF(result);
+        Py_DECREF(dict_items);
         return NULL;
       }
 
@@ -502,18 +506,21 @@ static PyObject *encode_dict(PyObject *self, PyObject *obj) {
       PyObject *value = PyTuple_GetItem(kv_pair, 1);
       if (key == NULL || value == NULL) {
         Py_DECREF(result);
+        Py_DECREF(dict_items);
         return NULL;
       }
 
       PyObject *encoded_key = partial_pickle(self, key);
       if (encoded_key == NULL) {
         Py_DECREF(result);
+        Py_DECREF(dict_items);
         return NULL;
       }
 
       PyObject *encoded_value = partial_pickle(self, value);
       if (encoded_value == NULL) {
         Py_DECREF(result);
+        Py_DECREF(dict_items);
         Py_DECREF(encoded_key);
         return NULL;
       }
