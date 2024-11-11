@@ -304,7 +304,6 @@ static PyObject *encode_tuple(PyObject *self, PyObject *obj) {
   for (Py_ssize_t i = 0; i < length; i++) {
     PyObject *item = PyTuple_GetItem(obj, i);
     PyObject *encoded = partial_pickle(self, item);
-    Py_DECREF(item);
     if (encoded == NULL) {
       Py_DECREF(result);
     }
@@ -338,10 +337,74 @@ static PyObject *encode_tuple(PyObject *self, PyObject *obj) {
   return result;
 }
 
-static PyObject *encode_list(PyObject *obj) { Py_RETURN_NONE; }
+static PyObject *encode_list(PyObject *self, PyObject *obj) {
+  if (!PyList_Check(obj)) {
+    PyErr_SetString(PyExc_TypeError, "Expected a list");
+    return NULL;
+  }
 
-static PyObject *encode_dict(PyObject *obj) { Py_RETURN_NONE; }
+  Py_ssize_t length = PyList_Size(obj);
+  PyObject *result = PyBytes_FromStringAndSize(NULL, 0);
+  if (result == NULL) {
+    return NULL;
+  }
 
-static PyObject *add_batch(PyObject *items) { Py_RETURN_NONE; }
+  PyBytes_ConcatAndDel(&result,
+                       PyBytes_FromStringAndSize((char *)EMPTY_LIST, 1));
 
-static PyObject *set_batch(PyObject *items) { Py_RETURN_NONE; }
+  PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((char *)MEMO, 1));
+
+  Py_ssize_t idx = 0;
+
+  while (idx < length) {
+    Py_ssize_t n = (length - idx > 1000) ? 1000 : (length - idx);
+
+    if (n > 1) {
+      PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((char *)MARK, 1));
+
+      for (Py_ssize_t j = 0; j < n; j++) {
+        PyObject *item = PyList_GetItem(obj, idx + j);
+        PyObject *encoded_item = partial_pickle(self, item);
+        if (encoded_item == NULL) {
+          Py_DECREF(result);
+          return NULL;
+        }
+
+        PyObject *encoded = PyBytes_FromObject(encoded_item);
+        Py_DECREF(encoded_item);
+        if (encoded == NULL) {
+          Py_DECREF(result);
+          return NULL;
+        }
+
+        PyBytes_ConcatAndDel(&result, encoded);
+        PyBytes_ConcatAndDel(&result,
+                             PyBytes_FromStringAndSize((char *)APPENDS, 1));
+      }
+    } else if (n == 1) {
+      PyObject *item = PyList_GetItem(obj, idx);
+      PyObject *encoded_item = partial_pickle(self, item);
+      if (encoded_item == NULL) {
+        Py_DECREF(result);
+        return NULL;
+      }
+
+      PyObject *encoded = PyBytes_FromObject(encoded_item);
+      Py_DECREF(encoded_item);
+      if (encoded == NULL) {
+        Py_DECREF(result);
+        return NULL;
+      }
+
+      PyBytes_ConcatAndDel(&result, encoded);
+      PyBytes_ConcatAndDel(&result,
+                           PyBytes_FromStringAndSize((char *)APPEND, 1));
+    }
+
+    idx += n;
+  }
+
+  return result;
+}
+
+static PyObject *encode_dict(PyObject *self, PyObject *obj) { Py_RETURN_NONE; }

@@ -2,6 +2,7 @@
 #define SEAPICKLE_H
 
 #include <Python.h>
+#include <object.h>
 #include <stdint.h>
 
 typedef enum {
@@ -73,9 +74,7 @@ static PyObject* encode_float(PyObject* obj);
 static PyObject* encode_long(PyObject* obj);
 static PyObject* encode_bytes(PyObject* obj);
 static PyObject* encode_tuple(PyObject* self, PyObject* obj);
-static PyObject* encode_list(PyObject* obj);
-static PyObject* encode_dict(PyObject* obj);
-static PyObject* add_batch(PyObject* items);
-static PyObject* set_batch(PyObject* items);
+static PyObject* encode_list(PyObject* self, PyObject* obj);
+static PyObject* encode_dict(PyObject* self, PyObject* obj);
 
 #endif
