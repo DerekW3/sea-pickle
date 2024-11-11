@@ -5,6 +5,9 @@
 #include <modsupport.h>
 #include <object.h>
 #include <pyerrors.h>
+#include <pyport.h>
+#include <string.h>
+#include <unicodeobject.h>
 
 PyObject *partial_pickle(PyObject *self, PyObject *args) {
   PyObject *obj;
@@ -76,7 +79,53 @@ static PyObject *encode_bool(PyObject *obj) {
   }
 }
 
-static PyObject *encode_string(PyObject *obj) { Py_RETURN_NONE; }
+static PyObject *encode_string(PyObject *obj) {
+  if (!PyUnicode_Check(obj)) {
+    PyErr_SetString(PyExc_TypeError, "Expected a string");
+    return NULL;
+  }
+
+  PyObject *utf_string_obj =
+      PyUnicode_AsEncodedString(obj, "utf-8", "surrogatepass");
+
+  if (utf_string_obj == NULL) {
+    return NULL;
+  }
+
+  Py_ssize_t length = PyBytes_Size(utf_string_obj);
+  char *utf_string = PyBytes_AsString(utf_string_obj);
+
+  PyObject *result = PyBytes_FromStringAndSize(NULL, 0);
+  if (result == NULL) {
+    Py_DECREF(utf_string_obj);
+    return NULL;
+  }
+
+  if (length < 256) {
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((char *)SHORT_UNICODE, 1));
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((char *)&length, 1));
+  } else if (length > 0xFFFFFFFFF) {
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((char *)LONG_UNICODE, 1));
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((char *)&length, 8));
+  } else {
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((char *)UNICODE, 1));
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((char *)&length, 4));
+  }
+
+  PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize(utf_string, length));
+
+  PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((char *)MEMO, 1));
+
+  Py_DECREF(utf_string_obj);
+
+  return result;
+}
 
 static PyObject *encode_float(PyObject *obj) { Py_RETURN_NONE; }
 
