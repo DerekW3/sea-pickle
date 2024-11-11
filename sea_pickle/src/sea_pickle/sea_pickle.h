@@ -72,7 +72,7 @@ static PyObject* encode_string(PyObject* obj);
 static PyObject* encode_float(PyObject* obj);
 static PyObject* encode_long(PyObject* obj);
 static PyObject* encode_bytes(PyObject* obj);
-static PyObject* encode_tuple(PyObject* obj);
+static PyObject* encode_tuple(PyObject* self, PyObject* obj);
 static PyObject* encode_list(PyObject* obj);
 static PyObject* encode_dict(PyObject* obj);
 static PyObject* add_batch(PyObject* items);

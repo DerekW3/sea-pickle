@@ -1,4 +1,5 @@
 #include "sea_pickle.h"
+#include <abstract.h>
 #include <boolobject.h>
 #include <bytesobject.h>
 #include <floatobject.h>
@@ -9,6 +10,7 @@
 #include <pyerrors.h>
 #include <pyport.h>
 #include <string.h>
+#include <tupleobject.h>
 #include <unicodeobject.h>
 
 PyObject *partial_pickle(PyObject *self, PyObject *args) {
@@ -278,7 +280,66 @@ static PyObject *encode_bytes(PyObject *obj) {
   return result;
 }
 
-static PyObject *encode_tuple(PyObject *obj) { Py_RETURN_NONE; }
+static PyObject *encode_tuple(PyObject *self, PyObject *obj) {
+  if (!PyTuple_Check(obj)) {
+    PyErr_SetString(PyExc_TypeError, "Expected a tuple.");
+    return NULL;
+  }
+
+  Py_ssize_t length = PyTuple_Size(obj);
+
+  PyObject *result = PyBytes_FromStringAndSize(NULL, 0);
+  if (result == NULL) {
+    return NULL;
+  }
+
+  if (length == 0) {
+    return PyBytes_FromStringAndSize((char *)EMPTY_TUPLE, 1);
+  }
+
+  if (length > 3) {
+    PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((char *)MARK, 1));
+  }
+
+  PyObject *iter = PyObject_GetIter(obj);
+  PyObject *item;
+  if (iter == NULL) {
+    return NULL;
+  }
+
+  while ((item = PyIter_Next(iter))) {
+    PyObject *encoded = partial_pickle(self, item);
+    Py_DECREF(item);
+    if (encoded == NULL) {
+      Py_DECREF(result);
+      Py_DECREF(iter);
+    }
+
+    PyObject *encoded_bytes = PyBytes_FromObject(encoded);
+    Py_DECREF(encoded);
+    if (encoded_bytes == NULL) {
+      Py_DECREF(result);
+      Py_DECREF(iter);
+    }
+
+    PyBytes_ConcatAndDel(&result, encoded_bytes);
+  }
+
+  switch (length) {
+  case 1:
+    PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((char *)TUPLE1, 1));
+  case 2:
+    PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((char *)TUPLE2, 1));
+  case 3:
+    PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((char *)TUPLE3, 1));
+  default:
+    PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((char *)TUPLE, 1));
+  }
+
+  PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((char *)MEMO, 1));
+
+  return result;
+}
 
 static PyObject *encode_list(PyObject *obj) { Py_RETURN_NONE; }
 
