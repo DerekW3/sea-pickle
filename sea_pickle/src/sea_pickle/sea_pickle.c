@@ -2,6 +2,7 @@
 #include <abstract.h>
 #include <boolobject.h>
 #include <bytesobject.h>
+#include <dictobject.h>
 #include <floatobject.h>
 #include <listobject.h>
 #include <longobject.h>
@@ -407,4 +408,147 @@ static PyObject *encode_list(PyObject *self, PyObject *obj) {
   return result;
 }
 
-static PyObject *encode_dict(PyObject *self, PyObject *obj) { Py_RETURN_NONE; }
+static PyObject *encode_dict(PyObject *self, PyObject *obj) {
+  if (!PyDict_Check(obj)) {
+    PyErr_SetString(PyExc_TypeError, "Expected a dictionary.");
+    return NULL;
+  }
+
+  PyObject *dict_items = PyDict_Items(obj);
+  if (dict_items == NULL) {
+    return NULL;
+  }
+
+  Py_ssize_t length = PyList_Size(dict_items);
+  PyObject *result = PyBytes_FromStringAndSize(NULL, 0);
+  if (result == NULL) {
+    return NULL;
+  }
+
+  PyBytes_ConcatAndDel(&result,
+                       PyBytes_FromStringAndSize((char *)EMPTY_DICT, 1));
+  PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((char *)MEMO, 1));
+
+  Py_ssize_t idx = 0;
+  while (idx < length) {
+    Py_ssize_t n = (length - idx > 1000) ? 1000 : (length - idx);
+
+    if (n > 1) {
+      PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((char *)MARK, 1));
+
+      for (Py_ssize_t j = 0; j < n; j++) {
+        PyObject *kv_pair = PyList_GetItem(dict_items, idx + j);
+        if (kv_pair == NULL || !PyTuple_Check(kv_pair) ||
+            PyTuple_Size(kv_pair) != 2) {
+          Py_DECREF(result);
+          return NULL;
+        }
+
+        PyObject *key = PyTuple_GetItem(kv_pair, 0);
+        PyObject *value = PyTuple_GetItem(kv_pair, 1);
+        if (key == NULL || value == NULL) {
+          Py_DECREF(result);
+          return NULL;
+        }
+
+        PyObject *encoded_key = partial_pickle(self, key);
+        if (encoded_key == NULL) {
+          Py_DECREF(result);
+          return NULL;
+        }
+
+        PyObject *encoded_value = partial_pickle(self, value);
+        if (encoded_value == NULL) {
+          Py_DECREF(result);
+          Py_DECREF(encoded_key);
+          return NULL;
+        }
+
+        PyObject *encoded_one = PyBytes_FromObject(encoded_key);
+        if (encoded_one == NULL) {
+          Py_DECREF(result);
+          Py_DECREF(encoded_key);
+          Py_DECREF(encoded_value);
+          Py_DECREF(dict_items);
+          return NULL;
+        }
+        PyObject *encoded_two = PyBytes_FromObject(encoded_value);
+        if (encoded_two == NULL) {
+          Py_DECREF(result);
+          Py_DECREF(encoded_key);
+          Py_DECREF(encoded_value);
+          Py_DECREF(encoded_one);
+          Py_DECREF(dict_items);
+          return NULL;
+        }
+
+        PyBytes_ConcatAndDel(&result, encoded_one);
+        PyBytes_ConcatAndDel(&result, encoded_two);
+        PyBytes_ConcatAndDel(&result,
+                             PyBytes_FromStringAndSize((char *)SETITEMS, 1));
+
+        Py_DECREF(encoded_key);
+        Py_DECREF(encoded_value);
+      }
+    } else if (n == 1) {
+      PyObject *kv_pair = PyList_GetItem(dict_items, idx);
+      if (kv_pair == NULL || !PyTuple_Check(kv_pair) ||
+          PyTuple_Size(kv_pair) != 2) {
+        Py_DECREF(result);
+        return NULL;
+      }
+
+      PyObject *key = PyTuple_GetItem(kv_pair, 0);
+      PyObject *value = PyTuple_GetItem(kv_pair, 1);
+      if (key == NULL || value == NULL) {
+        Py_DECREF(result);
+        return NULL;
+      }
+
+      PyObject *encoded_key = partial_pickle(self, key);
+      if (encoded_key == NULL) {
+        Py_DECREF(result);
+        return NULL;
+      }
+
+      PyObject *encoded_value = partial_pickle(self, value);
+      if (encoded_value == NULL) {
+        Py_DECREF(result);
+        Py_DECREF(encoded_key);
+        return NULL;
+      }
+
+      PyObject *encoded_one = PyBytes_FromObject(encoded_key);
+      if (encoded_one == NULL) {
+        Py_DECREF(result);
+        Py_DECREF(encoded_key);
+        Py_DECREF(encoded_value);
+        Py_DECREF(dict_items);
+        return NULL;
+      }
+      PyObject *encoded_two = PyBytes_FromObject(encoded_value);
+      if (encoded_two == NULL) {
+        Py_DECREF(result);
+        Py_DECREF(encoded_key);
+        Py_DECREF(encoded_value);
+        Py_DECREF(encoded_one);
+        Py_DECREF(dict_items);
+        return NULL;
+      }
+
+      PyBytes_ConcatAndDel(&result, encoded_one);
+      PyBytes_ConcatAndDel(&result, encoded_two);
+      PyBytes_ConcatAndDel(&result,
+                           PyBytes_FromStringAndSize((char *)SETITEM, 1));
+
+      Py_DECREF(encoded_key);
+      Py_DECREF(encoded_value);
+    }
+
+    idx += n;
+  }
+
+  Py_DECREF(dict_items);
+
+  return result;
+}
