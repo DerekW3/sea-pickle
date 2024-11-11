@@ -1,9 +1,9 @@
 #include "sea_pickle.h"
 #include <boolobject.h>
 #include <bytesobject.h>
-#include <cstring>
 #include <floatobject.h>
 #include <listobject.h>
+#include <longobject.h>
 #include <modsupport.h>
 #include <object.h>
 #include <pyerrors.h>
@@ -155,7 +155,82 @@ static PyObject *encode_float(PyObject *obj) {
   return result;
 }
 
-static PyObject *encode_long(PyObject *obj) { Py_RETURN_NONE; }
+static PyObject *encode_long(PyObject *obj) {
+  if (!PyLong_Check(obj)) {
+    PyErr_SetString(PyExc_TypeError, "Expected an integer.");
+    return NULL;
+  }
+
+  long value = PyLong_AsLong(obj);
+  if (value == -1 && PyErr_Occurred()) {
+    return NULL;
+  }
+
+  PyObject *result = PyBytes_FromStringAndSize(NULL, 0);
+  if (result == NULL) {
+    return NULL;
+  }
+
+  if (value >= 0) {
+    if (value <= 0xFF) {
+      PyBytes_ConcatAndDel(&result,
+                           PyBytes_FromStringAndSize((char *)BININT1, 1));
+      unsigned char byte_value = (unsigned char)value;
+      PyBytes_ConcatAndDel(&result,
+                           PyBytes_FromStringAndSize((char *)&byte_value, 1));
+      return result;
+    } else if (value <= 0xFFFF) {
+      PyBytes_ConcatAndDel(&result,
+                           PyBytes_FromStringAndSize((char *)BININT2, 1));
+      unsigned short short_value = (unsigned short)value;
+      PyBytes_ConcatAndDel(&result,
+                           PyBytes_FromStringAndSize((char *)&short_value, 2));
+    }
+  }
+
+  if (-0x80000000 <= value && value <= 0x7FFFFFFF) {
+    PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((char *)BININT, 1));
+    int int_value = (int)value;
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((char *)&int_value, 4));
+  }
+
+  long abs_value = value >= 0 ? value : -value;
+  int num_bytes = abs_value != 0 ? 0 : 1;
+
+  while (abs_value > 0) {
+    abs_value >>= 8;
+    num_bytes++;
+  }
+
+  unsigned char *encoded_long = (unsigned char *)malloc(num_bytes);
+  if (encoded_long == NULL) {
+    Py_DECREF(result);
+    return NULL;
+  }
+
+  for (int i = 0; i < num_bytes; i++) {
+    encoded_long[i] = (value >> (i * 8)) & 0xFF;
+  }
+
+  PyObject *long_result =
+      PyBytes_FromStringAndSize((char *)encoded_long, num_bytes);
+  free(encoded_long);
+
+  if (num_bytes < 256) {
+    PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((char *)LONG1, 1));
+    unsigned char length_byte = (unsigned char)num_bytes;
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((char *)&length_byte, 1));
+  } else {
+    PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((char *)LONG4, 1));
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((char *)&num_bytes, 4));
+  }
+
+  PyBytes_ConcatAndDel(&result, long_result);
+  return result;
+}
 
 static PyObject *encode_bytes(PyObject *obj) { Py_RETURN_NONE; }
 
