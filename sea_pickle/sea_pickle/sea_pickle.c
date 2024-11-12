@@ -445,7 +445,44 @@ int compare_length(const void *a, const void *b) {
 }
 
 static PyObject *extract_tuple(PyObject *chunks, Py_ssize_t idx) {
-  Py_RETURN_NONE;
+  int num_remains = 1;
+  int curr_idx = idx;
+  PyObject *res = PyBytes_FromStringAndSize(NULL, 0);
+
+  while (num_remains > 0 && curr_idx >= 0) {
+    PyObject *curr_chunk = PyList_GetItem(chunks, curr_idx);
+    const char *chunk_data = PyBytes_AsString(curr_chunk);
+    Py_ssize_t chunk_size = PyBytes_Size(curr_chunk);
+
+    unsigned char last_byte = (unsigned char)chunk_data[chunk_size - 2];
+
+    if (last_byte == 0x85) {
+      num_remains += 1;
+    } else if (last_byte == 0x86) {
+      num_remains += 2;
+    } else if (last_byte == 0x87) {
+      num_remains += 3;
+    }
+
+    PyObject *new_res =
+        PyBytes_FromStringAndSize(NULL, PyBytes_Size(res) + chunk_size);
+    if (!new_res) {
+      Py_DECREF(res);
+      return NULL;
+    }
+
+    memcpy(PyBytes_AsString(new_res), PyBytes_AsString(res), PyBytes_Size(res));
+    memcpy(PyBytes_AsString(new_res) + PyBytes_Size(res), chunk_data,
+           chunk_size);
+
+    Py_DECREF(res);
+    res = new_res;
+
+    curr_idx -= 1;
+    num_remains -= 1;
+  }
+
+  return res;
 }
 
 static PyObject *extract_sequence(PyObject *chunks, Py_ssize_t idx) {
