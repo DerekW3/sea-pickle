@@ -2,6 +2,7 @@
 #include <abstract.h>
 #include <boolobject.h>
 #include <bytesobject.h>
+#include <cstddef>
 #include <dictobject.h>
 #include <floatobject.h>
 #include <listobject.h>
@@ -430,7 +431,17 @@ static PyObject *listize(PyObject *memory, PyObject *obj1, PyObject *obj2) {
   free(key_array);
   Py_DECREF(keys);
   Py_DECREF(combined);
-
+  PyObject *new_res = PyBytes_FromStringAndSize(NULL, 0);
+  PyBytes_ConcatAndDel(&new_res,
+                       PyBytes_FromStringAndSize((const char *)&EMPTY_LIST, 1));
+  PyBytes_ConcatAndDel(&new_res,
+                       PyBytes_FromStringAndSize((const char *)&MEMO, 1));
+  PyBytes_ConcatAndDel(&new_res,
+                       PyBytes_FromStringAndSize((const char *)&MARK, 1));
+  PyBytes_ConcatAndDel(&new_res, result);
+  PyBytes_ConcatAndDel(&new_res,
+                       PyBytes_FromStringAndSize((const char *)&APPENDS, 1));
+  PyBytes_ConcatAndDel(&new_res, PyBytes_FromStringAndSize(".", 1));
   return result;
 }
 
