@@ -1,4 +1,4 @@
-#include "sea_pickle.h"
+#include <Python.h>
 #include <abstract.h>
 #include <boolobject.h>
 #include <bytesobject.h>
@@ -6,13 +6,95 @@
 #include <floatobject.h>
 #include <listobject.h>
 #include <longobject.h>
+#include <methodobject.h>
 #include <modsupport.h>
+#include <moduleobject.h>
 #include <object.h>
 #include <pyerrors.h>
+#include <pylifecycle.h>
 #include <pyport.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <tupleobject.h>
 #include <unicodeobject.h>
+
+const unsigned char MEMO = 0x94;
+const unsigned char BINGET = 'h';
+const unsigned char LONG_BINGET = 'j';
+
+// BOOL-LIKE TYPES
+const unsigned char NONE = 'N';
+const unsigned char TRUE = 0x88;
+const unsigned char FALSE = 0x89;
+
+// STRING TYPES
+const unsigned char SHORT_UNICODE = 0x8c;
+const unsigned char UNICODE = 'X';
+const unsigned char LONG_UNICODE = 0x8d;
+
+// NUMERIC TYPES
+const unsigned char BININT = 'J';
+const unsigned char BININT1 = 'K';
+const unsigned char BININT2 = 'M';
+const unsigned char LONG1 = 0x8a;
+const unsigned char LONG4 = 0x8b;
+const unsigned char BINFLOAT = 'G';
+
+// BYTES TYPES
+const unsigned char SHORT_BINBYTES = 'C';
+const unsigned char BINBYTES8 = 0x8e;
+const unsigned char BINBYTES = 'B';
+
+// ARRAY TYPES
+const unsigned char MARK = '(';
+const unsigned char APPENDS = 'e';
+const unsigned char APPEND = 'a';
+
+// DICT TYPES
+const unsigned char EMPTY_DICT = '}';
+const unsigned char SETITEM = 's';
+const unsigned char SETITEMS = 'u';
+
+// TUPLE TYPES
+const unsigned char EMPTY_TUPLE = ')';
+const unsigned char TUPLE1 = 0x85;
+const unsigned char TUPLE2 = 0x86;
+const unsigned char TUPLE3 = 0x87;
+const unsigned char TUPLE = 't';
+
+// LIST TYPES
+const unsigned char EMPTY_LIST = ']';
+
+typedef struct {
+  PyTypeObject *type;
+  PyObject *(*func)(PyObject *, PyObject *);
+  int arg_count;
+} DisbatchEntry;
+
+PyObject *partial_pickle(PyObject *self, PyObject *args);
+PyObject *merge_partials(PyObject *self, PyObject *args);
+
+static PyObject *get_chunks(PyObject *obj);
+static PyObject *get_memo(PyObject *chunks);
+static PyObject *listize(PyObject *memory, PyObject *obj1, PyObject *obj2);
+static PyObject *extract_tuple(PyObject *chunks, PyObject *idx);
+static PyObject *extract_sequence(PyObject *chunks, PyObject *idx);
+static PyObject *length_packer(PyObject *length);
+static PyObject *get(PyObject *idx);
+static PyObject *merge_strings(PyObject *str_1, PyObject *identifier_1,
+                               PyObject *str_2, PyObject *identifier_2);
+static PyObject *merge_bytes(PyObject *byte_str_1, PyObject *identifier_1,
+                             PyObject *byte_str_2, PyObject *identifier_2);
+static PyObject *encode_none(void);
+static PyObject *encode_bool(PyObject *obj);
+static PyObject *encode_string(PyObject *obj);
+static PyObject *encode_float(PyObject *obj);
+static PyObject *encode_long(PyObject *obj);
+static PyObject *encode_bytes(PyObject *obj);
+static PyObject *encode_tuple(PyObject *self, PyObject *obj);
+static PyObject *encode_list(PyObject *self, PyObject *obj);
+static PyObject *encode_dict(PyObject *self, PyObject *obj);
 
 static DisbatchEntry disbatch_table[] = {
     {&PyBool_Type, (PyObject * (*)(PyObject *, PyObject *)) encode_bool, 1},
@@ -27,6 +109,8 @@ static DisbatchEntry disbatch_table[] = {
     {NULL, NULL, 0}};
 
 PyObject *partial_pickle(PyObject *self, PyObject *args) {
+  printf("hello there ");
+
   PyObject *obj;
 
   if (!PyArg_ParseTuple(args, "O", &obj)) {
@@ -82,7 +166,7 @@ PyObject *merge_partials(PyObject *self, PyObject *args) {
     return NULL;
   }
 
-  Py_RETURN_NONE;
+  return PyBytes_FromStringAndSize((const char *)&MEMO, 1);
 }
 
 static PyObject *get_chunks(PyObject *obj) { Py_RETURN_NONE; }
@@ -116,7 +200,7 @@ static PyObject *merge_bytes(PyObject *byte_str_1, PyObject *identifier_1,
 }
 
 static PyObject *encode_none(void) {
-  return PyBytes_FromStringAndSize((const char *)NONE, sizeof(NONE));
+  return PyBytes_FromStringAndSize((const char *)&NONE, sizeof(NONE));
 }
 
 static PyObject *encode_bool(PyObject *obj) {
@@ -126,9 +210,10 @@ static PyObject *encode_bool(PyObject *obj) {
   };
 
   if (obj == Py_True) {
-    return PyBytes_FromStringAndSize((char *)TRUE, sizeof(TRUE));
+    unsigned char truet = (unsigned char)TRUE;
+    return PyBytes_FromStringAndSize((const char *)&TRUE, 1);
   } else {
-    return PyBytes_FromStringAndSize((char *)FALSE, sizeof(FALSE));
+    return PyBytes_FromStringAndSize((const char *)&FALSE, 1);
   }
 }
 
@@ -217,10 +302,13 @@ static PyObject *encode_long(PyObject *obj) {
     return NULL;
   }
 
-  PyObject *result = PyBytes_FromStringAndSize(NULL, 0);
+  PyObject *result = NULL;
   if (result == NULL) {
     return NULL;
   }
+
+  printf("hello there I'm here");
+  fflush(stdout);
 
   if (value >= 0) {
     if (value <= 0xFF) {
@@ -280,6 +368,7 @@ static PyObject *encode_long(PyObject *obj) {
   }
 
   PyBytes_ConcatAndDel(&result, long_result);
+
   return result;
 }
 
@@ -606,4 +695,17 @@ static PyObject *encode_dict(PyObject *self, PyObject *obj) {
   Py_DECREF(dict_items);
 
   return result;
+}
+
+static PyMethodDef SeaPickleMethods[] = {
+    {"partial_pickle", partial_pickle, METH_VARARGS, "encode an object"},
+    {"merge_partials", merge_partials, METH_VARARGS, "merge encoded objects"},
+    {NULL, NULL, 0, NULL},
+};
+
+static struct PyModuleDef seapicklemodule = {
+    PyModuleDef_HEAD_INIT, "sea_pickle", NULL, -1, SeaPickleMethods};
+
+PyMODINIT_FUNC PyInit_sea_pickle(void) {
+  return PyModule_Create(&seapicklemodule);
 }

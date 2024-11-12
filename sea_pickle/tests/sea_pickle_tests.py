@@ -1,11 +1,8 @@
-import sys
-
 import sea_pickle
 
 
 def main():
-    print(sys.path)
-    print(dir(sea_pickle))
+    print(sea_pickle.partial_pickle(True))
 
 
 if __name__ == "__main__":
