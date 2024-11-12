@@ -486,7 +486,94 @@ static PyObject *extract_tuple(PyObject *chunks, Py_ssize_t idx) {
 }
 
 static PyObject *extract_sequence(PyObject *chunks, Py_ssize_t idx) {
-  Py_RETURN_NONE;
+  int num_remains = 1;
+  Py_ssize_t num_chunks = PyList_Size(chunks);
+  const char *ident = PyBytes_AsString(PyList_GetItem(chunks, idx));
+  int curr_idx = idx;
+  PyObject *res = PyBytes_FromStringAndSize(NULL, 0);
+
+  while (num_remains > 0 && curr_idx < num_chunks) {
+    PyObject *curr_chunk = PyList_GetItem(chunks, curr_idx);
+    const char *chunk_data = PyBytes_AsString(curr_chunk);
+    Py_ssize_t chunk_size = PyBytes_Size(curr_chunk);
+
+    if (curr_idx != idx && chunk_data[0] == ident[0]) {
+      num_remains += 1;
+    }
+
+    if (chunk_data[0] == EMPTY_LIST) {
+      int num_reduce = 0;
+      for (Py_ssize_t i = chunk_size - 1; i >= 0; i--) {
+        if (chunk_data[i] == APPEND || chunk_data[i] == APPENDS) {
+          num_reduce += 1;
+        } else if (chunk_data[i] == SETITEM || chunk_data[i] == SETITEMS) {
+          continue;
+        } else {
+          break;
+        }
+      }
+      num_remains -= num_reduce;
+    } else if (chunk_data[0] == EMPTY_DICT) {
+      int num_reduce = 0;
+      for (Py_ssize_t i = chunk_size - 1; i >= 0; i--) {
+        if (chunk_data[i] == SETITEM || chunk_data[i] == SETITEMS) {
+          num_reduce += 1;
+        } else if (chunk_data[i] == APPEND || chunk_data[i] == APPENDS) {
+          continue;
+        } else {
+          break;
+        }
+      }
+      num_remains -= num_reduce;
+    } else if (chunk_data[0] == MARK) {
+      if (chunk_size >= 3 && chunk_data[chunk_size - 3] == TUPLE) {
+        num_remains -= 1;
+      }
+    }
+
+    PyObject *new_res =
+        PyBytes_FromStringAndSize(NULL, PyBytes_Size(res) + chunk_size);
+    if (!new_res) {
+      Py_DECREF(res);
+      return NULL;
+    }
+
+    memcpy(PyBytes_AsString(new_res), PyBytes_AsString(res), PyBytes_Size(res));
+    memcpy(PyBytes_AsString(new_res) + PyBytes_Size(res), chunk_data,
+           chunk_size);
+
+    Py_DECREF(res);
+    res = new_res;
+
+    curr_idx += 1;
+  }
+
+  if (num_remains) {
+    PyObject *new_res;
+    if (ident[0] == EMPTY_LIST) {
+      new_res = PyBytes_FromStringAndSize(NULL, PyBytes_Size(res) + 2);
+      if (!new_res) {
+        Py_DECREF(res);
+        return NULL;
+      }
+      memcpy(PyBytes_AsString(new_res), PyBytes_AsString(res),
+             PyBytes_Size(res));
+      memcpy(PyBytes_AsString(new_res) + PyBytes_Size(res), "]\x94", 2);
+    } else {
+      new_res = PyBytes_FromStringAndSize(NULL, PyBytes_Size(res) + 2);
+      if (!new_res) {
+        Py_DECREF(res);
+        return NULL;
+      }
+      memcpy(PyBytes_AsString(new_res), PyBytes_AsString(res),
+             PyBytes_Size(res));
+      memcpy(PyBytes_AsString(new_res) + PyBytes_Size(res), "}\x94", 2);
+    }
+    Py_DECREF(res);
+    res = new_res;
+  }
+
+  return res;
 }
 
 static PyObject *get(PyObject *idx) {
