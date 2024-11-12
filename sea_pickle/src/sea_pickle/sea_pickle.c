@@ -14,6 +14,18 @@
 #include <tupleobject.h>
 #include <unicodeobject.h>
 
+static DisbatchEntry disbatch_table[] = {
+    {&PyBool_Type, (PyObject * (*)(PyObject *, PyObject *)) encode_bool, 1},
+    {&PyUnicode_Type, (PyObject * (*)(PyObject *, PyObject *)) encode_string,
+     1},
+    {&PyFloat_Type, (PyObject * (*)(PyObject *, PyObject *)) encode_float, 1},
+    {&PyLong_Type, (PyObject * (*)(PyObject *, PyObject *)) encode_long, 1},
+    {&PyBytes_Type, (PyObject * (*)(PyObject *, PyObject *)) encode_bytes, 1},
+    {&PyTuple_Type, encode_tuple, 2},
+    {&PyList_Type, encode_list, 2},
+    {&PyDict_Type, encode_dict, 2},
+    {NULL, NULL, 0}};
+
 PyObject *partial_pickle(PyObject *self, PyObject *args) {
   PyObject *obj;
 
@@ -21,7 +33,43 @@ PyObject *partial_pickle(PyObject *self, PyObject *args) {
     return NULL;
   }
 
-  Py_RETURN_NONE;
+  PyObject *pickled_obj = PyBytes_FromStringAndSize(NULL, 0);
+  if (pickled_obj == NULL) {
+    return NULL;
+  }
+
+  if (obj == Py_None) {
+    PyBytes_ConcatAndDel(&pickled_obj, encode_none());
+    return pickled_obj;
+  }
+
+  for (int i = 0; i < sizeof(disbatch_table) / sizeof(disbatch_table[0]); i++) {
+    if (disbatch_table[i].type != NULL &&
+        PyObject_TypeCheck(obj, disbatch_table[i].type)) {
+      PyObject *result = NULL;
+
+      if (disbatch_table[i].arg_count == 1) {
+        result = disbatch_table[i].func(obj, NULL);
+      } else {
+        result = disbatch_table[i].func(self, obj);
+      }
+
+      if (result == NULL) {
+        Py_DECREF(pickled_obj);
+        return NULL;
+      }
+
+      PyBytes_ConcatAndDel(&pickled_obj, result);
+      break;
+    }
+  }
+
+  if (pickled_obj == NULL) {
+    PyErr_SetString(PyExc_TypeError, "Unsupported type for encoding.");
+    return NULL;
+  }
+
+  return pickled_obj;
 }
 
 PyObject *merge_partials(PyObject *self, PyObject *args) {

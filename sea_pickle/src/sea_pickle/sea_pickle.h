@@ -5,6 +5,12 @@
 #include <object.h>
 #include <stdint.h>
 
+typedef struct {
+  PyTypeObject* type;
+  PyObject* (*func)(PyObject*, PyObject*);
+  int arg_count;
+} DisbatchEntry;
+
 typedef enum {
   MEMO = 0x94,
   BINGET = 'h',
