@@ -2,7 +2,6 @@
 #include <abstract.h>
 #include <boolobject.h>
 #include <bytesobject.h>
-#include <cstddef>
 #include <dictobject.h>
 #include <floatobject.h>
 #include <listobject.h>
@@ -117,7 +116,7 @@ PyObject *partial_pickle(PyObject *self, PyObject *args) {
   }
 
   PyObject *pickled_obj = PyBytes_FromStringAndSize(NULL, 0);
-  if (pickled_obj == NULL) {
+  if (!pickled_obj) {
     return NULL;
   }
 
@@ -139,7 +138,7 @@ PyObject *partial_pickle(PyObject *self, PyObject *args) {
         result = disbatch_table[i].func(self, obj);
       }
 
-      if (result == NULL) {
+      if (!result) {
         Py_DECREF(pickled_obj);
         return NULL;
       }
@@ -149,7 +148,7 @@ PyObject *partial_pickle(PyObject *self, PyObject *args) {
     }
   }
 
-  if (pickled_obj == NULL) {
+  if (!pickled_obj) {
     PyErr_SetString(PyExc_TypeError, "Unsupported type for encoding.");
     return NULL;
   }
@@ -170,7 +169,19 @@ PyObject *merge_partials(PyObject *self, PyObject *args) {
   return PyBytes_FromStringAndSize((const char *)&MEMO, 1);
 }
 
-static PyObject *get_chunks(PyObject *obj) { Py_RETURN_NONE; }
+static PyObject *get_chunks(PyObject *obj) {
+  if (!PyBytes_Check(obj)) {
+    PyErr_SetString(PyExc_TypeError, "Expected a bytes object.");
+    return NULL;
+  }
+
+  Py_ssize_t length = PyBytes_Size(obj);
+  const char *data = PyBytes_AsString(obj);
+  PyObject *chunks = PyList_New(0);
+  if (!chunks) {
+    return NULL;
+  }
+}
 
 static PyObject *get_memo(PyObject *chunks) { Py_RETURN_NONE; }
 
@@ -259,7 +270,7 @@ static PyObject *merge_strings(PyObject *str_1, PyObject *identifier_1,
   }
 
   PyObject *result = PyBytes_FromStringAndSize(NULL, 0);
-  if (result == NULL) {
+  if (!result) {
     Py_DECREF(maintain_one);
     Py_DECREF(maintain_two);
     return NULL;
@@ -334,7 +345,7 @@ static PyObject *merge_bytes(PyObject *byte_str_1, PyObject *identifier_1,
   }
 
   PyObject *result = PyBytes_FromStringAndSize(NULL, 0);
-  if (result == NULL) {
+  if (!result) {
     Py_DECREF(maintain_one);
     Py_DECREF(maintain_two);
     return NULL;
@@ -394,7 +405,7 @@ static PyObject *encode_string(PyObject *obj) {
   PyObject *utf_string_obj =
       PyUnicode_AsEncodedString(obj, "utf-8", "surrogatepass");
 
-  if (utf_string_obj == NULL) {
+  if (!utf_string_obj) {
     return NULL;
   }
 
@@ -402,7 +413,7 @@ static PyObject *encode_string(PyObject *obj) {
   char *utf_string = PyBytes_AsString(utf_string_obj);
 
   PyObject *result = PyBytes_FromStringAndSize(NULL, 0);
-  if (result == NULL) {
+  if (!result) {
     Py_DECREF(utf_string_obj);
     return NULL;
   }
@@ -446,7 +457,7 @@ static PyObject *encode_float(PyObject *obj) {
   }
 
   PyObject *result = PyBytes_FromStringAndSize(NULL, 0);
-  if (result == NULL) {
+  if (!result) {
     return NULL;
   }
 
@@ -481,7 +492,7 @@ static PyObject *encode_long(PyObject *obj) {
   }
 
   PyObject *result = PyBytes_FromStringAndSize(NULL, 0);
-  if (result == NULL) {
+  if (!result) {
     return NULL;
   }
 
@@ -530,7 +541,7 @@ static PyObject *encode_long(PyObject *obj) {
   }
 
   unsigned char *encoded_long = (unsigned char *)malloc(num_bytes);
-  if (encoded_long == NULL) {
+  if (!encoded_long) {
     Py_DECREF(result);
     return NULL;
   }
@@ -568,7 +579,7 @@ static PyObject *encode_bytes(PyObject *obj) {
   }
 
   PyObject *bytes_obj = PyBytes_FromObject(obj);
-  if (bytes_obj == NULL) {
+  if (!bytes_obj) {
     return NULL;
   }
 
@@ -576,7 +587,7 @@ static PyObject *encode_bytes(PyObject *obj) {
   char *bytes_str = PyBytes_AsString(bytes_obj);
 
   PyObject *result = PyBytes_FromStringAndSize(NULL, 0);
-  if (result == NULL) {
+  if (!result) {
     Py_DECREF(bytes_obj);
     return NULL;
   }
@@ -617,7 +628,7 @@ static PyObject *encode_tuple(PyObject *self, PyObject *obj) {
   Py_ssize_t length = PyTuple_Size(obj);
 
   PyObject *result = PyBytes_FromStringAndSize(NULL, 0);
-  if (result == NULL) {
+  if (!result) {
     return NULL;
   }
 
@@ -633,13 +644,13 @@ static PyObject *encode_tuple(PyObject *self, PyObject *obj) {
   for (Py_ssize_t i = 0; i < length; i++) {
     PyObject *item = PyTuple_GetItem(obj, i);
     PyObject *encoded = partial_pickle(self, item);
-    if (encoded == NULL) {
+    if (!encoded) {
       Py_DECREF(result);
     }
 
     PyObject *encoded_bytes = PyBytes_FromObject(encoded);
     Py_DECREF(encoded);
-    if (encoded_bytes == NULL) {
+    if (!encoded_bytes) {
       Py_DECREF(result);
     }
 
@@ -679,7 +690,7 @@ static PyObject *encode_list(PyObject *self, PyObject *obj) {
 
   Py_ssize_t length = PyList_Size(obj);
   PyObject *result = PyBytes_FromStringAndSize(NULL, 0);
-  if (result == NULL) {
+  if (!result) {
     return NULL;
   }
 
@@ -701,14 +712,14 @@ static PyObject *encode_list(PyObject *self, PyObject *obj) {
       for (Py_ssize_t j = 0; j < n; j++) {
         PyObject *item = PyList_GetItem(obj, idx + j);
         PyObject *encoded_item = partial_pickle(self, item);
-        if (encoded_item == NULL) {
+        if (!encoded_item) {
           Py_DECREF(result);
           return NULL;
         }
 
         PyObject *encoded = PyBytes_FromObject(encoded_item);
         Py_DECREF(encoded_item);
-        if (encoded == NULL) {
+        if (!encoded) {
           Py_DECREF(result);
           return NULL;
         }
@@ -720,14 +731,14 @@ static PyObject *encode_list(PyObject *self, PyObject *obj) {
     } else if (n == 1) {
       PyObject *item = PyList_GetItem(obj, idx);
       PyObject *encoded_item = partial_pickle(self, item);
-      if (encoded_item == NULL) {
+      if (!encoded_item) {
         Py_DECREF(result);
         return NULL;
       }
 
       PyObject *encoded = PyBytes_FromObject(encoded_item);
       Py_DECREF(encoded_item);
-      if (encoded == NULL) {
+      if (!encoded) {
         Py_DECREF(result);
         return NULL;
       }
@@ -750,13 +761,13 @@ static PyObject *encode_dict(PyObject *self, PyObject *obj) {
   }
 
   PyObject *dict_items = PyDict_Items(obj);
-  if (dict_items == NULL) {
+  if (!dict_items) {
     return NULL;
   }
 
   Py_ssize_t length = PyList_Size(dict_items);
   PyObject *result = PyBytes_FromStringAndSize(NULL, 0);
-  if (result == NULL) {
+  if (!result) {
     return NULL;
   }
 
@@ -775,8 +786,7 @@ static PyObject *encode_dict(PyObject *self, PyObject *obj) {
 
       for (Py_ssize_t j = 0; j < n; j++) {
         PyObject *kv_pair = PyList_GetItem(dict_items, idx + j);
-        if (kv_pair == NULL || !PyTuple_Check(kv_pair) ||
-            PyTuple_Size(kv_pair) != 2) {
+        if (!kv_pair || !PyTuple_Check(kv_pair) || PyTuple_Size(kv_pair) != 2) {
           Py_DECREF(result);
           Py_DECREF(dict_items);
           return NULL;
@@ -784,7 +794,7 @@ static PyObject *encode_dict(PyObject *self, PyObject *obj) {
 
         PyObject *key = PyTuple_GetItem(kv_pair, 0);
         PyObject *value = PyTuple_GetItem(kv_pair, 1);
-        if (key == NULL || value == NULL) {
+        if (!key || !value) {
           Py_DECREF(result);
           Py_DECREF(dict_items);
           return NULL;
@@ -822,8 +832,7 @@ static PyObject *encode_dict(PyObject *self, PyObject *obj) {
       }
     } else if (n == 1) {
       PyObject *kv_pair = PyList_GetItem(dict_items, idx);
-      if (kv_pair == NULL || !PyTuple_Check(kv_pair) ||
-          PyTuple_Size(kv_pair) != 2) {
+      if (!kv_pair || !PyTuple_Check(kv_pair) || PyTuple_Size(kv_pair) != 2) {
         Py_DECREF(result);
         Py_DECREF(dict_items);
         return NULL;
@@ -831,7 +840,7 @@ static PyObject *encode_dict(PyObject *self, PyObject *obj) {
 
       PyObject *key = PyTuple_GetItem(kv_pair, 0);
       PyObject *value = PyTuple_GetItem(kv_pair, 1);
-      if (key == NULL || value == NULL) {
+      if (!key || !value) {
         Py_DECREF(result);
         Py_DECREF(dict_items);
         return NULL;
