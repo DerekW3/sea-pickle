@@ -109,11 +109,10 @@ static DisbatchEntry disbatch_table[] = {
     {NULL, NULL, 0}};
 
 PyObject *partial_pickle(PyObject *self, PyObject *args) {
-  printf("hello there ");
-
   PyObject *obj;
 
   if (!PyArg_ParseTuple(args, "O", &obj)) {
+    PyErr_SetString(PyExc_RuntimeError, "Failed to parse argument");
     return NULL;
   }
 
@@ -240,13 +239,13 @@ static PyObject *encode_string(PyObject *obj) {
   }
 
   if (length < 256) {
-    PyBytes_ConcatAndDel(&result,
-                         PyBytes_FromStringAndSize((const char *)&SHORT_UNICODE, 1));
+    PyBytes_ConcatAndDel(
+        &result, PyBytes_FromStringAndSize((const char *)&SHORT_UNICODE, 1));
     PyBytes_ConcatAndDel(&result,
                          PyBytes_FromStringAndSize((char *)&length, 1));
   } else if (length > 0xFFFFFFFFF) {
-    PyBytes_ConcatAndDel(&result,
-                         PyBytes_FromStringAndSize((const char *)&LONG_UNICODE, 1));
+    PyBytes_ConcatAndDel(
+        &result, PyBytes_FromStringAndSize((const char *)&LONG_UNICODE, 1));
     PyBytes_ConcatAndDel(&result,
                          PyBytes_FromStringAndSize((char *)&length, 8));
   } else {
@@ -258,7 +257,8 @@ static PyObject *encode_string(PyObject *obj) {
 
   PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize(utf_string, length));
 
-  PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((const char *)&MEMO, 1));
+  PyBytes_ConcatAndDel(&result,
+                       PyBytes_FromStringAndSize((const char *)&MEMO, 1));
 
   Py_DECREF(utf_string_obj);
 
@@ -284,7 +284,8 @@ static PyObject *encode_float(PyObject *obj) {
   unsigned char packed_float[8];
   memcpy(packed_float, &value, sizeof(double));
 
-  PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((const char *)&BINFLOAT, 1));
+  PyBytes_ConcatAndDel(&result,
+                       PyBytes_FromStringAndSize((const char *)&BINFLOAT, 1));
   PyBytes_ConcatAndDel(&result,
                        PyBytes_FromStringAndSize((char *)packed_float, 8));
 
@@ -299,28 +300,27 @@ static PyObject *encode_long(PyObject *obj) {
 
   long value = PyLong_AsLong(obj);
   if (value == -1 && PyErr_Occurred()) {
+    PyErr_SetString(PyExc_TypeError, "it aint a long");
     return NULL;
   }
 
-  PyObject *result = NULL;
+  PyObject *result = PyBytes_FromStringAndSize(NULL, 0);
   if (result == NULL) {
+    PyErr_SetString(PyExc_Exception, "gooba");
     return NULL;
   }
-
-  printf("hello there I'm here");
-  fflush(stdout);
 
   if (value >= 0) {
     if (value <= 0xFF) {
-      PyBytes_ConcatAndDel(&result,
-                           PyBytes_FromStringAndSize((const char *)&BININT1, 1));
+      PyBytes_ConcatAndDel(
+          &result, PyBytes_FromStringAndSize((const char *)&BININT1, 1));
       unsigned char byte_value = (unsigned char)value;
       PyBytes_ConcatAndDel(&result,
                            PyBytes_FromStringAndSize((char *)&byte_value, 1));
       return result;
     } else if (value <= 0xFFFF) {
-      PyBytes_ConcatAndDel(&result,
-                           PyBytes_FromStringAndSize((const char *)&BININT2, 1));
+      PyBytes_ConcatAndDel(
+          &result, PyBytes_FromStringAndSize((const char *)&BININT2, 1));
       unsigned short short_value = (unsigned short)value;
       PyBytes_ConcatAndDel(&result,
                            PyBytes_FromStringAndSize((char *)&short_value, 2));
@@ -328,7 +328,8 @@ static PyObject *encode_long(PyObject *obj) {
   }
 
   if (-0x80000000 <= value && value <= 0x7FFFFFFF) {
-    PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((const char *)&BININT, 1));
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((const char *)&BININT, 1));
     int int_value = (int)value;
     PyBytes_ConcatAndDel(&result,
                          PyBytes_FromStringAndSize((char *)&int_value, 4));
@@ -357,12 +358,14 @@ static PyObject *encode_long(PyObject *obj) {
   free(encoded_long);
 
   if (num_bytes < 256) {
-    PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((const char *)&LONG1, 1));
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((const char *)&LONG1, 1));
     unsigned char length_byte = (unsigned char)num_bytes;
     PyBytes_ConcatAndDel(&result,
                          PyBytes_FromStringAndSize((char *)&length_byte, 1));
   } else {
-    PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((const char *)&LONG4, 1));
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((const char *)&LONG4, 1));
     PyBytes_ConcatAndDel(&result,
                          PyBytes_FromStringAndSize((char *)&num_bytes, 4));
   }
@@ -393,13 +396,13 @@ static PyObject *encode_bytes(PyObject *obj) {
   }
 
   if (length < 256) {
-    PyBytes_ConcatAndDel(&result,
-                         PyBytes_FromStringAndSize((const char *)&SHORT_BINBYTES, 1));
+    PyBytes_ConcatAndDel(
+        &result, PyBytes_FromStringAndSize((const char *)&SHORT_BINBYTES, 1));
     PyBytes_ConcatAndDel(&result,
                          PyBytes_FromStringAndSize((char *)&length, 1));
   } else if (length > 0xFFFFFFFFF) {
-    PyBytes_ConcatAndDel(&result,
-                         PyBytes_FromStringAndSize((const char *)&BINBYTES8, 1));
+    PyBytes_ConcatAndDel(
+        &result, PyBytes_FromStringAndSize((const char *)&BINBYTES8, 1));
     PyBytes_ConcatAndDel(&result,
                          PyBytes_FromStringAndSize((char *)&length, 8));
   } else {
@@ -411,7 +414,8 @@ static PyObject *encode_bytes(PyObject *obj) {
 
   PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize(bytes_str, length));
 
-  PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((const char *)&MEMO, 1));
+  PyBytes_ConcatAndDel(&result,
+                       PyBytes_FromStringAndSize((const char *)&MEMO, 1));
 
   Py_DECREF(bytes_obj);
 
@@ -436,7 +440,8 @@ static PyObject *encode_tuple(PyObject *self, PyObject *obj) {
   }
 
   if (length > 3) {
-    PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((const char *)&MARK, 1));
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((const char *)&MARK, 1));
   }
 
   for (Py_ssize_t i = 0; i < length; i++) {
@@ -457,20 +462,25 @@ static PyObject *encode_tuple(PyObject *self, PyObject *obj) {
 
   switch (length) {
   case 1:
-    PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((const char *)&TUPLE1, 1));
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((const char *)&TUPLE1, 1));
     break;
   case 2:
-    PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((const char *)&TUPLE2, 1));
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((const char *)&TUPLE2, 1));
     break;
   case 3:
-    PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((const char *)&TUPLE3, 1));
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((const char *)&TUPLE3, 1));
     break;
   default:
-    PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((const char *)&TUPLE, 1));
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((const char *)&TUPLE, 1));
     break;
   }
 
-  PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((const char *)&MEMO, 1));
+  PyBytes_ConcatAndDel(&result,
+                       PyBytes_FromStringAndSize((const char *)&MEMO, 1));
 
   return result;
 }
@@ -490,7 +500,8 @@ static PyObject *encode_list(PyObject *self, PyObject *obj) {
   PyBytes_ConcatAndDel(&result,
                        PyBytes_FromStringAndSize((const char *)&EMPTY_LIST, 1));
 
-  PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((const char *)&MEMO, 1));
+  PyBytes_ConcatAndDel(&result,
+                       PyBytes_FromStringAndSize((const char *)&MEMO, 1));
 
   Py_ssize_t idx = 0;
 
@@ -498,7 +509,8 @@ static PyObject *encode_list(PyObject *self, PyObject *obj) {
     Py_ssize_t n = (length - idx > 1000) ? 1000 : (length - idx);
 
     if (n > 1) {
-      PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((const char *)&MARK, 1));
+      PyBytes_ConcatAndDel(&result,
+                           PyBytes_FromStringAndSize((const char *)&MARK, 1));
 
       for (Py_ssize_t j = 0; j < n; j++) {
         PyObject *item = PyList_GetItem(obj, idx + j);
@@ -516,8 +528,8 @@ static PyObject *encode_list(PyObject *self, PyObject *obj) {
         }
 
         PyBytes_ConcatAndDel(&result, encoded);
-        PyBytes_ConcatAndDel(&result,
-                             PyBytes_FromStringAndSize((const char *)&APPENDS, 1));
+        PyBytes_ConcatAndDel(
+            &result, PyBytes_FromStringAndSize((const char *)&APPENDS, 1));
       }
     } else if (n == 1) {
       PyObject *item = PyList_GetItem(obj, idx);
@@ -564,14 +576,16 @@ static PyObject *encode_dict(PyObject *self, PyObject *obj) {
 
   PyBytes_ConcatAndDel(&result,
                        PyBytes_FromStringAndSize((const char *)&EMPTY_DICT, 1));
-  PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((const char *)&MEMO, 1));
+  PyBytes_ConcatAndDel(&result,
+                       PyBytes_FromStringAndSize((const char *)&MEMO, 1));
 
   Py_ssize_t idx = 0;
   while (idx < length) {
     Py_ssize_t n = (length - idx > 1000) ? 1000 : (length - idx);
 
     if (n > 1) {
-      PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((const char *)&MARK, 1));
+      PyBytes_ConcatAndDel(&result,
+                           PyBytes_FromStringAndSize((const char *)&MARK, 1));
 
       for (Py_ssize_t j = 0; j < n; j++) {
         PyObject *kv_pair = PyList_GetItem(dict_items, idx + j);
@@ -624,8 +638,8 @@ static PyObject *encode_dict(PyObject *self, PyObject *obj) {
 
         PyBytes_ConcatAndDel(&result, encoded_one);
         PyBytes_ConcatAndDel(&result, encoded_two);
-        PyBytes_ConcatAndDel(&result,
-                             PyBytes_FromStringAndSize((const char *)&SETITEMS, 1));
+        PyBytes_ConcatAndDel(
+            &result, PyBytes_FromStringAndSize((const char *)&SETITEMS, 1));
 
         Py_DECREF(encoded_key);
         Py_DECREF(encoded_value);
@@ -682,8 +696,8 @@ static PyObject *encode_dict(PyObject *self, PyObject *obj) {
 
       PyBytes_ConcatAndDel(&result, encoded_one);
       PyBytes_ConcatAndDel(&result, encoded_two);
-      PyBytes_ConcatAndDel(&result,
-                           PyBytes_FromStringAndSize((const char *)&SETITEM, 1));
+      PyBytes_ConcatAndDel(
+          &result, PyBytes_FromStringAndSize((const char *)&SETITEM, 1));
 
       Py_DECREF(encoded_key);
       Py_DECREF(encoded_value);
