@@ -15,6 +15,7 @@
 #include <pyport.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <tupleobject.h>
 #include <unicodeobject.h>
@@ -94,6 +95,7 @@ PyObject *merge_partials(PyObject *self, PyObject *args);
 static PyObject *get_chunks(PyObject *obj);
 static PyObject *get_memo(PyObject *chunks);
 static PyObject *listize(PyObject *memory, PyObject *obj1, PyObject *obj2);
+int compare_length(const void *a, const void *b);
 static PyObject *extract_tuple(PyObject *chunks, Py_ssize_t idx);
 static PyObject *extract_sequence(PyObject *chunks, Py_ssize_t idx);
 static PyObject *get(PyObject *idx);
@@ -308,7 +310,138 @@ static PyObject *get_memo(PyObject *chunks) {
 }
 
 static PyObject *listize(PyObject *memory, PyObject *obj1, PyObject *obj2) {
-  Py_RETURN_NONE;
+  if (!PyDict_Check(memory) || !PyBytes_Check(obj1) || !PyBytes_Check(obj2)) {
+    PyErr_SetString(PyExc_TypeError,
+                    "Expected a dictionary and two bytes objects.");
+    return NULL;
+  }
+
+  PyObject *combined = PyBytes_FromStringAndSize(NULL, 0);
+  if (!combined) {
+    return NULL;
+  }
+
+  PyBytes_ConcatAndDel(&combined, obj1);
+  PyBytes_ConcatAndDel(&combined, obj2);
+
+  PyObject *keys = PyDict_Keys(memory);
+  if (!keys) {
+    Py_DECREF(combined);
+    return NULL;
+  }
+
+  Py_ssize_t num_keys = PyList_Size(keys);
+  PyObject **key_array = (PyObject **)malloc(num_keys * sizeof(PyObject *));
+  if (!key_array) {
+    Py_DECREF(keys);
+    Py_DECREF(combined);
+    return NULL;
+  }
+
+  for (Py_ssize_t i = 0; i < num_keys; i++) {
+    key_array[i] = PyList_GetItem(keys, i);
+    Py_INCREF(key_array[i]);
+  }
+
+  qsort(key_array, num_keys, sizeof(PyObject *), compare_length);
+
+  PyObject *result = PyBytes_FromStringAndSize(NULL, 0);
+  if (!result) {
+    free(key_array);
+    Py_DECREF(keys);
+    Py_DECREF(combined);
+    return NULL;
+  }
+
+  char *result_buffer = PyBytes_AsString(result);
+  Py_ssize_t result_size = 0;
+
+  const char *curr = PyBytes_AsString(combined);
+  Py_ssize_t combined_size = PyBytes_Size(combined);
+
+  for (Py_ssize_t i = 0; i < num_keys; i++) {
+    PyObject *memoized = key_array[i];
+    PyObject *idx_obj = PyDict_GetItem(memory, memoized);
+    PyObject *replacement = get(idx_obj);
+
+    if (PyBytes_Size(memoized) > 0 && memcmp(memoized, &EMPTY_DICT, 1) == 0 &&
+        memcmp(memoized, &EMPTY_LIST, 1) == 0) {
+      continue;
+    }
+
+    if (replacement) {
+      const char *memoized_str = PyBytes_AsString(memoized);
+      Py_ssize_t memoized_len = PyBytes_Size(memoized);
+
+      const char *replacement_str = PyBytes_AsString(replacement);
+      Py_ssize_t replacement_len = PyBytes_Size(replacement);
+
+      const char *start = curr;
+
+      while ((start = strstr(start, memoized_str)) != NULL) {
+        Py_ssize_t seg_length = start - curr;
+
+        Py_ssize_t new_res_size = result_size + seg_length + replacement_len;
+        PyObject *new_result = PyBytes_FromStringAndSize(NULL, new_res_size);
+        if (!new_result) {
+          Py_DECREF(replacement);
+          free(key_array);
+          Py_DECREF(keys);
+          Py_DECREF(combined);
+          return NULL;
+        }
+
+        memcpy(PyBytes_AsString(new_result), result_buffer, result_size);
+        memcpy(PyBytes_AsString(new_result) + result_size, curr, seg_length);
+        memcpy(PyBytes_AsString(new_result) + result_size + seg_length,
+               replacement_str, replacement_len);
+
+        Py_DECREF(result);
+        result = new_result;
+        result_buffer = PyBytes_AsString(result);
+        result_size = new_res_size;
+
+        start += memoized_len;
+        curr = start;
+      }
+    }
+    Py_DECREF(replacement);
+  }
+
+  Py_ssize_t remaining_len =
+      combined_size - (curr - PyBytes_AsString(combined));
+  if (remaining_len > 0) {
+    Py_ssize_t new_result_size = result_size + remaining_len;
+    PyObject *new_result = PyBytes_FromStringAndSize(NULL, new_result_size);
+    if (!new_result) {
+      free(key_array);
+      Py_DECREF(keys);
+      Py_DECREF(combined);
+      return NULL;
+    }
+
+    memcpy(PyBytes_AsString(new_result), result_buffer, result_size);
+    memcpy(PyBytes_AsString(new_result) + result_size, curr, remaining_len);
+
+    Py_DECREF(result);
+    result = new_result;
+  }
+
+  free(key_array);
+  Py_DECREF(keys);
+  Py_DECREF(combined);
+
+  return result;
+}
+
+int compare_length(const void *a, const void *b) {
+  PyObject *obj_a = *(PyObject **)a;
+  PyObject *obj_b = *(PyObject **)b;
+
+  Py_ssize_t len_a = PyBytes_Size(obj_a);
+  Py_ssize_t len_b = PyBytes_Size(obj_b);
+
+  return (len_a > len_b) - (len_a < len_b);
 }
 
 static PyObject *extract_tuple(PyObject *chunks, Py_ssize_t idx) {
