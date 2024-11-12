@@ -73,7 +73,7 @@ const unsigned char *indicators[] = {
     &MARK,         &EMPTY_DICT, &EMPTY_LIST,     &EMPTY_TUPLE,   &TUPLE1,
     &TUPLE2,       &TUPLE3,     &TUPLE,          &EMPTY_LIST};
 
-int in_indicators(const unsigned char *elem) {
+int in_indicators(const char *elem) {
   for (size_t i = 0; i < 23; i++) {
     if (memcmp(elem, indicators[i], 1) == 0) {
       return 1;
@@ -220,9 +220,23 @@ static PyObject *get_chunks(PyObject *obj) {
       right += 2;
     }
 
-    while (right < length) {
+    while (right < length && in_indicators(data + left) &&
+           !in_indicators(data + right)) {
+      right++;
     }
+
+    PyObject *chunk = PyBytes_FromStringAndSize(data + left, right - left);
+    if (!chunk) {
+      Py_DECREF(chunks);
+      return NULL;
+    }
+    PyList_Append(chunks, chunk);
+    Py_DECREF(chunk);
+    left = right;
+    right++;
   }
+
+  return chunks;
 }
 
 static PyObject *get_memo(PyObject *chunks) { Py_RETURN_NONE; }
