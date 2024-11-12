@@ -66,6 +66,22 @@ const unsigned char TUPLE = 't';
 // LIST TYPES
 const unsigned char EMPTY_LIST = ']';
 
+const unsigned char *indicators[] = {
+    &NONE,         &TRUE,       &FALSE,          &SHORT_UNICODE, &UNICODE,
+    &LONG_UNICODE, &BININT,     &BININT1,        &BININT2,       &LONG1,
+    &LONG4,        &BINFLOAT,   &SHORT_BINBYTES, &BINBYTES,      &BINBYTES8,
+    &MARK,         &EMPTY_DICT, &EMPTY_LIST,     &EMPTY_TUPLE,   &TUPLE1,
+    &TUPLE2,       &TUPLE3,     &TUPLE,          &EMPTY_LIST};
+
+int in_indicators(const unsigned char *elem) {
+  for (size_t i = 0; i < 23; i++) {
+    if (memcmp(elem, indicators[i], 1) == 0) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
 typedef struct {
   PyTypeObject *type;
   PyObject *(*func)(PyObject *, PyObject *);
@@ -180,6 +196,32 @@ static PyObject *get_chunks(PyObject *obj) {
   PyObject *chunks = PyList_New(0);
   if (!chunks) {
     return NULL;
+  }
+
+  Py_ssize_t left = 0, right = 1;
+
+  while (left < right) {
+    const char *curr_byte = data + left;
+
+    if (memcmp(curr_byte, &SHORT_UNICODE, 1) == 0 ||
+        memcmp(curr_byte, &SHORT_BINBYTES, 1) == 0) {
+      right += (uint8_t)(data + right)[0] + 1;
+    } else if (memcmp(curr_byte, &UNICODE, 1) == 0 ||
+               memcmp(curr_byte, &BINBYTES, 1) == 0) {
+      uint32_t size;
+      memcpy(&size, data + right, 4);
+      right += size + 1;
+    } else if (memcmp(curr_byte, &LONG_UNICODE, 1) == 0 ||
+               memcmp(curr_byte, &BINBYTES8, 1)) {
+      uint64_t size;
+      memcpy(&size, data + right, 8);
+      right += size + 1;
+    } else if (memcmp(curr_byte, &EMPTY_LIST, 1) == 0) {
+      right += 2;
+    }
+
+    while (right < length) {
+    }
   }
 }
 
