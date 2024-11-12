@@ -285,6 +285,14 @@ static PyObject *encode_float(PyObject *obj) {
   unsigned char packed_float[8];
   memcpy(packed_float, &value, sizeof(double));
 
+  if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__) {
+    for (int i = 0; i < sizeof(double) / 2; i++) {
+      unsigned char temp = packed_float[i];
+      packed_float[i] = packed_float[sizeof(double) - 1 - i];
+      packed_float[sizeof(double) - 1 - i] = temp;
+    }
+  }
+
   PyBytes_ConcatAndDel(&result,
                        PyBytes_FromStringAndSize((const char *)&BINFLOAT, 1));
   PyBytes_ConcatAndDel(&result,
