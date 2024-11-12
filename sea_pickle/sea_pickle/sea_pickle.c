@@ -129,6 +129,8 @@ PyObject *partial_pickle(PyObject *self, PyObject *args) {
   for (int i = 0; i < sizeof(disbatch_table) / sizeof(disbatch_table[0]); i++) {
     if (disbatch_table[i].type != NULL &&
         PyObject_TypeCheck(obj, disbatch_table[i].type)) {
+      printf("found the type");
+      fflush(stdout);
       PyObject *result = NULL;
 
       if (disbatch_table[i].arg_count == 1) {
@@ -209,7 +211,6 @@ static PyObject *encode_bool(PyObject *obj) {
   };
 
   if (obj == Py_True) {
-    unsigned char truet = (unsigned char)TRUE;
     return PyBytes_FromStringAndSize((const char *)&TRUE, 1);
   } else {
     return PyBytes_FromStringAndSize((const char *)&FALSE, 1);
@@ -300,13 +301,11 @@ static PyObject *encode_long(PyObject *obj) {
 
   long value = PyLong_AsLong(obj);
   if (value == -1 && PyErr_Occurred()) {
-    PyErr_SetString(PyExc_TypeError, "it aint a long");
     return NULL;
   }
 
   PyObject *result = PyBytes_FromStringAndSize(NULL, 0);
   if (result == NULL) {
-    PyErr_SetString(PyExc_Exception, "gooba");
     return NULL;
   }
 
@@ -318,21 +317,32 @@ static PyObject *encode_long(PyObject *obj) {
       PyBytes_ConcatAndDel(&result,
                            PyBytes_FromStringAndSize((char *)&byte_value, 1));
       return result;
-    } else if (value <= 0xFFFF) {
+    } else if (value <= (int)0xFFFF) {
       PyBytes_ConcatAndDel(
           &result, PyBytes_FromStringAndSize((const char *)&BININT2, 1));
       unsigned short short_value = (unsigned short)value;
       PyBytes_ConcatAndDel(&result,
                            PyBytes_FromStringAndSize((char *)&short_value, 2));
+      return result;
+    } else if (value <= (int)0x7FFFFFFF) {
+      PyBytes_ConcatAndDel(&result,
+                           PyBytes_FromStringAndSize((const char *)&BININT, 1));
+      int int_value = (int)value;
+      PyBytes_ConcatAndDel(&result,
+                           PyBytes_FromStringAndSize((char *)&int_value, 4));
+      return result;
     }
   }
 
-  if (-0x80000000 <= value && value <= 0x7FFFFFFF) {
-    PyBytes_ConcatAndDel(&result,
-                         PyBytes_FromStringAndSize((const char *)&BININT, 1));
-    int int_value = (int)value;
-    PyBytes_ConcatAndDel(&result,
-                         PyBytes_FromStringAndSize((char *)&int_value, 4));
+  if (value < 0) {
+    if (value >= (int)-0x80000000) {
+      PyBytes_ConcatAndDel(&result,
+                           PyBytes_FromStringAndSize((const char *)&BININT, 1));
+      int int_value = (int)value;
+      PyBytes_ConcatAndDel(&result,
+                           PyBytes_FromStringAndSize((char *)&int_value, 4));
+      return result;
+    }
   }
 
   long abs_value = value >= 0 ? value : -value;
