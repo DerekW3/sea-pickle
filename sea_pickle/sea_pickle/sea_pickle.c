@@ -2,7 +2,6 @@
 #include <abstract.h>
 #include <boolobject.h>
 #include <bytesobject.h>
-#include <cstddef>
 #include <dictobject.h>
 #include <floatobject.h>
 #include <listobject.h>
@@ -176,16 +175,103 @@ PyObject *partial_pickle(PyObject *self, PyObject *args) {
 }
 
 PyObject *merge_partials(PyObject *self, PyObject *args) {
-  const char *obj1;
-  const char *obj2;
+  PyObject *obj1, *obj2;
   int no_memo = 0;
   int frame_info = 1;
 
-  if (!PyArg_ParseTuple(args, "ss|ii", &obj1, &obj2, &no_memo, &frame_info)) {
+  if (!PyArg_ParseTuple(args, "O!O!|pp", &PyBytes_Type, &obj1, &PyBytes_Type,
+                        &obj2, &no_memo, &frame_info)) {
     return NULL;
   }
 
-  return PyBytes_FromStringAndSize((const char *)&MEMO, 1);
+  if (PyBytes_Size(obj1) == 0 && PyBytes_Size(obj2) == 0) {
+    PyErr_SetString(PyExc_ValueError, "Invalid Input: Un-mergable objects");
+    return NULL;
+  }
+
+  PyObject *result = PyBytes_FromStringAndSize(NULL, 0);
+  const char *identifier_1 = PyBytes_AsString(obj1);
+  const char *identifier_2 = PyBytes_AsString(obj2);
+  char identifier_1_byte = identifier_1[0];
+  char identifier_2_byte = identifier_2[0];
+
+  int identifier_1_count = 0;
+  for (Py_ssize_t i = 0; i < PyBytes_Size(obj1); i++) {
+    if (identifier_1[i] == identifier_1_byte) {
+      identifier_1_count++;
+    }
+  }
+  int identifier_2_count = 0;
+  for (Py_ssize_t i = 0; i < PyBytes_Size(obj1); i++) {
+    if (identifier_2[i] == identifier_2_byte) {
+      identifier_2_count++;
+    }
+  }
+
+  if ((identifier_1_byte == (char)0x8c || identifier_1_byte == 'X' ||
+       identifier_1_byte == (char)0x8d) &&
+      identifier_1_count == 1 &&
+      (identifier_2_byte == (char)0x8c || identifier_2_byte == 'X' ||
+       identifier_2_byte == (char)0x8d) &&
+      identifier_2_count == 1) {
+    result =
+        merge_strings(obj1, PyBytes_FromStringAndSize(&identifier_1_byte, 1),
+                      obj2, PyBytes_FromStringAndSize(&identifier_2_byte, 1));
+  } else if ((identifier_1_byte == (char)0x8e || identifier_1_byte == 'B' ||
+              identifier_1_byte == 'C') &&
+             identifier_1_count == 1 &&
+             (identifier_2_byte == (char)0x8e || identifier_2_byte == 'B' ||
+              identifier_2_byte == 'C') &&
+             identifier_2_count == 1) {
+    result =
+        merge_bytes(obj1, PyBytes_FromStringAndSize(&identifier_1_byte, 1),
+                    obj2, PyBytes_FromStringAndSize(&identifier_2_byte, 1));
+  } else {
+    PyObject *concatted = PyBytes_FromStringAndSize(NULL, 0);
+    if (!concatted) {
+      return NULL;
+    }
+    memcpy(PyBytes_AsString(concatted), PyBytes_AsString(obj1),
+           PyBytes_Size(obj1));
+    memcpy(PyBytes_AsString(concatted) + PyBytes_Size(obj1),
+           PyBytes_AsString(obj2), PyBytes_Size(obj2));
+
+    PyObject *chunks = no_memo ? Py_None : get_chunks(concatted);
+    PyObject *temp_memo = no_memo ? PyDict_New() : get_memo(chunks);
+
+    if (PyBytes_Size(obj1) > 0 && PyBytes_Size(obj2) > 0 && frame_info) {
+      result = listize(temp_memo, obj1, obj2);
+    } else {
+      PyBytes_ConcatAndDel(&result, concatted);
+      PyBytes_ConcatAndDel(&result, PyBytes_FromString("."));
+    }
+
+    Py_XDECREF(concatted);
+  }
+
+  PyObject *protocol_bytes =
+      frame_info ? PyBytes_FromString("\x80\x04") : PyBytes_FromString("");
+  PyObject *frame_bytes =
+      (PyBytes_Size(result) >= 4 && frame_info)
+          ? PyBytes_FromFormat("\x95%lu", (unsigned long)PyBytes_Size(result))
+          : PyBytes_FromString("");
+
+  if (!frame_info) {
+    Py_ssize_t result_size = PyBytes_Size(result);
+    if (result_size > 0) {
+      result =
+          PyBytes_FromStringAndSize(PyBytes_AsString(result), result_size - 1);
+    }
+  }
+  PyObject *final_result = PyBytes_FromStringAndSize(NULL, 0);
+  if (!final_result) {
+    return NULL;
+  }
+  PyBytes_ConcatAndDel(&final_result, protocol_bytes);
+  PyBytes_ConcatAndDel(&final_result, frame_bytes);
+  PyBytes_ConcatAndDel(&final_result, result);
+
+  return final_result;
 }
 
 static PyObject *get_chunks(PyObject *obj) {
