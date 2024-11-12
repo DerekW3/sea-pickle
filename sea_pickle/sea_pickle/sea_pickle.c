@@ -2,6 +2,7 @@
 #include <abstract.h>
 #include <boolobject.h>
 #include <bytesobject.h>
+#include <cstddef>
 #include <dictobject.h>
 #include <floatobject.h>
 #include <listobject.h>
@@ -219,35 +220,77 @@ static PyObject *get(PyObject *idx) {
 
 static PyObject *merge_strings(PyObject *str_1, PyObject *identifier_1,
                                PyObject *str_2, PyObject *identifier_2) {
-  size_t len_bytes_1 = (PyBytes_Size(identifier_1) == 1 &&
-                        memcmp(PyBytes_AsString(identifier_1), "\x8c", 1) == 0)
-                           ? 1
-                       : (PyBytes_Size(identifier_1) == 1 &&
-                          memcmp(PyBytes_AsString(identifier_1), "X", 1) == 0)
-                           ? 4
-                           : 8;
+  if (!PyBytes_Check(str_1) || !PyBytes_Check(identifier_1) ||
+      !PyBytes_Check(str_2) || !PyBytes_Check(identifier_2)) {
+    PyErr_SetString(PyExc_TypeError, "Expected bytes objects.");
+    return NULL;
+  }
 
-  size_t len_bytes_2 = (PyBytes_Size(identifier_2) == 1 &&
-                        memcmp(PyBytes_AsString(identifier_2), "\x8c", 1) == 0)
-                           ? 1
-                       : (PyBytes_Size(identifier_2) == 1 &&
-                          memcmp(PyBytes_AsString(identifier_2), "X", 1) == 0)
-                           ? 4
-                           : 8;
+  Py_ssize_t len_bytes_1 =
+      (PyBytes_Size(identifier_1) == 1 &&
+       memcmp(PyBytes_AsString(identifier_1), "\x8c", 1) == 0)
+          ? 1
+      : (PyBytes_Size(identifier_1) == 1 &&
+         memcmp(PyBytes_AsString(identifier_1), "X", 1) == 0)
+          ? 4
+          : 8;
+
+  Py_ssize_t len_bytes_2 =
+      (PyBytes_Size(identifier_2) == 1 &&
+       memcmp(PyBytes_AsString(identifier_2), "\x8c", 1) == 0)
+          ? 1
+      : (PyBytes_Size(identifier_2) == 1 &&
+         memcmp(PyBytes_AsString(identifier_2), "X", 1) == 0)
+          ? 4
+          : 8;
 
   PyObject *maintain_one =
-      PyBytes_FromStringAndSize(PyBytes_AsString(str_1) + len_bytes_1 + 1,
-                                PyBytes_Size(str_1) - len_bytes_1 - 2);
+      PyBytes_FromStringAndSize(PyBytes_AsString(str_1) + len_bytes_1,
+                                PyBytes_Size(str_1) - len_bytes_1 - 3);
 
   PyObject *maintain_two =
-      PyBytes_FromStringAndSize(PyBytes_AsString(str_2) + len_bytes_2 + 1,
-                                PyBytes_Size(str_2) - len_bytes_2 - 2);
+      PyBytes_FromStringAndSize(PyBytes_AsString(str_2) + len_bytes_2,
+                                PyBytes_Size(str_2) - len_bytes_2 - 3);
 
   if (!maintain_one || !maintain_two) {
     Py_XDECREF(maintain_one);
     Py_XDECREF(maintain_two);
     return NULL;
   }
+
+  PyObject *result = PyBytes_FromStringAndSize(NULL, 0);
+  if (result == NULL) {
+    Py_DECREF(maintain_one);
+    Py_DECREF(maintain_two);
+    return NULL;
+  }
+
+  PyBytes_ConcatAndDel(&result, maintain_one);
+  PyBytes_ConcatAndDel(&result, maintain_two);
+  PyBytes_ConcatAndDel(&result,
+                       PyBytes_FromStringAndSize((const char *)&MEMO, 1));
+
+  Py_ssize_t length = PyBytes_Size(maintain_one) + PyBytes_Size(maintain_two);
+  if (length < 256) {
+    PyBytes_ConcatAndDel(
+        &result, PyBytes_FromStringAndSize((const char *)&SHORT_UNICODE, 1));
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((char *)&length, 1));
+  } else if (length <= 0xFFFFFFFF) {
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((const char *)&UNICODE, 1));
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((char *)&length, 4));
+  } else {
+    PyBytes_ConcatAndDel(
+        &result, PyBytes_FromStringAndSize((const char *)&LONG_UNICODE, 1));
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((char *)&length, 8));
+  }
+
+  PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize(".", 1));
+
+  return result;
 }
 
 static PyObject *merge_bytes(PyObject *byte_str_1, PyObject *identifier_1,
