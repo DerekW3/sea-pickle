@@ -295,7 +295,77 @@ static PyObject *merge_strings(PyObject *str_1, PyObject *identifier_1,
 
 static PyObject *merge_bytes(PyObject *byte_str_1, PyObject *identifier_1,
                              PyObject *byte_str_2, PyObject *identifier_2) {
-  Py_RETURN_NONE;
+  if (!PyBytes_Check(byte_str_1) || !PyBytes_Check(identifier_1) ||
+      !PyBytes_Check(byte_str_2) || !PyBytes_Check(identifier_2)) {
+    PyErr_SetString(PyExc_TypeError, "Expected bytes objects.");
+    return NULL;
+  }
+
+  Py_ssize_t len_bytes_1 =
+      (PyBytes_Size(identifier_1) == 1 &&
+       memcmp(PyBytes_AsString(identifier_1), "C", 1) == 0)
+          ? 1
+      : (PyBytes_Size(identifier_1) == 1 &&
+         memcmp(PyBytes_AsString(identifier_1), "B", 1) == 0)
+          ? 4
+          : 8;
+
+  Py_ssize_t len_bytes_2 =
+      (PyBytes_Size(identifier_2) == 1 &&
+       memcmp(PyBytes_AsString(identifier_2), "C", 1) == 0)
+          ? 1
+      : (PyBytes_Size(identifier_2) == 1 &&
+         memcmp(PyBytes_AsString(identifier_2), "B", 1) == 0)
+          ? 4
+          : 8;
+
+  PyObject *maintain_one =
+      PyBytes_FromStringAndSize(PyBytes_AsString(byte_str_1) + len_bytes_1,
+                                PyBytes_Size(byte_str_1) - len_bytes_1 - 3);
+
+  PyObject *maintain_two =
+      PyBytes_FromStringAndSize(PyBytes_AsString(byte_str_2) + len_bytes_2,
+                                PyBytes_Size(byte_str_2) - len_bytes_2 - 3);
+
+  if (!maintain_one || !maintain_two) {
+    Py_XDECREF(maintain_one);
+    Py_XDECREF(maintain_two);
+    return NULL;
+  }
+
+  PyObject *result = PyBytes_FromStringAndSize(NULL, 0);
+  if (result == NULL) {
+    Py_DECREF(maintain_one);
+    Py_DECREF(maintain_two);
+    return NULL;
+  }
+
+  PyBytes_ConcatAndDel(&result, maintain_one);
+  PyBytes_ConcatAndDel(&result, maintain_two);
+  PyBytes_ConcatAndDel(&result,
+                       PyBytes_FromStringAndSize((const char *)&MEMO, 1));
+
+  Py_ssize_t length = PyBytes_Size(maintain_one) + PyBytes_Size(maintain_two);
+  if (length < 256) {
+    PyBytes_ConcatAndDel(
+        &result, PyBytes_FromStringAndSize((const char *)&SHORT_BINBYTES, 1));
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((char *)&length, 1));
+  } else if (length <= 0xFFFFFFFF) {
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((const char *)&BINBYTES, 1));
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((char *)&length, 4));
+  } else {
+    PyBytes_ConcatAndDel(
+        &result, PyBytes_FromStringAndSize((const char *)&BINBYTES8, 1));
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((char *)&length, 8));
+  }
+
+  PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize(".", 1));
+
+  return result;
 }
 
 static PyObject *encode_none(void) {
