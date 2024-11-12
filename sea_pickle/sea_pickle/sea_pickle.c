@@ -735,8 +735,9 @@ static PyMethodDef SeaPickleMethods[] = {
     {NULL, NULL, 0, NULL},
 };
 
-static struct PyModuleDef seapicklemodule = {
-    PyModuleDef_HEAD_INIT, "sea_pickle", NULL, -1, SeaPickleMethods};
+static struct PyModuleDef seapicklemodule = {PyModuleDef_HEAD_INIT,
+                                             "sea_pickle", "a true sea pickle",
+                                             -1, SeaPickleMethods};
 
 PyMODINIT_FUNC PyInit_sea_pickle(void) {
   return PyModule_Create(&seapicklemodule);
