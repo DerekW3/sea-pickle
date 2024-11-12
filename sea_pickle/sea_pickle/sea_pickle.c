@@ -80,7 +80,6 @@ static PyObject *get_memo(PyObject *chunks);
 static PyObject *listize(PyObject *memory, PyObject *obj1, PyObject *obj2);
 static PyObject *extract_tuple(PyObject *chunks, PyObject *idx);
 static PyObject *extract_sequence(PyObject *chunks, PyObject *idx);
-static PyObject *length_packer(PyObject *length);
 static PyObject *get(PyObject *idx);
 static PyObject *merge_strings(PyObject *str_1, PyObject *identifier_1,
                                PyObject *str_2, PyObject *identifier_2);
@@ -186,8 +185,6 @@ static PyObject *extract_sequence(PyObject *chunks, PyObject *idx) {
   Py_RETURN_NONE;
 }
 
-static PyObject *length_packer(PyObject *length) { Py_RETURN_NONE; }
-
 static PyObject *get(PyObject *idx) {
   if (!PyLong_Check(idx)) {
     PyErr_SetString(PyExc_TypeError, "Expected an integer index.");
@@ -207,6 +204,10 @@ static PyObject *get(PyObject *idx) {
   } else {
     PyBytes_ConcatAndDel(
         &result, PyBytes_FromStringAndSize((const char *)&LONG_BINGET, 1));
+    unsigned int long_idx = (unsigned int)index;
+    PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize((char *)&long_idx,
+                                                            sizeof(long_idx)));
+    return result;
   }
 
   unsigned char byte_idx = (unsigned char)index;
@@ -218,7 +219,35 @@ static PyObject *get(PyObject *idx) {
 
 static PyObject *merge_strings(PyObject *str_1, PyObject *identifier_1,
                                PyObject *str_2, PyObject *identifier_2) {
-  Py_RETURN_NONE;
+  size_t len_bytes_1 = (PyBytes_Size(identifier_1) == 1 &&
+                        memcmp(PyBytes_AsString(identifier_1), "\x8c", 1) == 0)
+                           ? 1
+                       : (PyBytes_Size(identifier_1) == 1 &&
+                          memcmp(PyBytes_AsString(identifier_1), "X", 1) == 0)
+                           ? 4
+                           : 8;
+
+  size_t len_bytes_2 = (PyBytes_Size(identifier_2) == 1 &&
+                        memcmp(PyBytes_AsString(identifier_2), "\x8c", 1) == 0)
+                           ? 1
+                       : (PyBytes_Size(identifier_2) == 1 &&
+                          memcmp(PyBytes_AsString(identifier_2), "X", 1) == 0)
+                           ? 4
+                           : 8;
+
+  PyObject *maintain_one =
+      PyBytes_FromStringAndSize(PyBytes_AsString(str_1) + len_bytes_1 + 1,
+                                PyBytes_Size(str_1) - len_bytes_1 - 2);
+
+  PyObject *maintain_two =
+      PyBytes_FromStringAndSize(PyBytes_AsString(str_2) + len_bytes_2 + 1,
+                                PyBytes_Size(str_2) - len_bytes_2 - 2);
+
+  if (!maintain_one || !maintain_two) {
+    Py_XDECREF(maintain_one);
+    Py_XDECREF(maintain_two);
+    return NULL;
+  }
 }
 
 static PyObject *merge_bytes(PyObject *byte_str_1, PyObject *identifier_1,
@@ -649,34 +678,24 @@ static PyObject *encode_dict(PyObject *self, PyObject *obj) {
         }
 
         PyObject *encoded_key = partial_pickle(self, key);
-        if (encoded_key == NULL) {
-          Py_DECREF(result);
-          return NULL;
-        }
-
         PyObject *encoded_value = partial_pickle(self, value);
-        if (encoded_value == NULL) {
+        if (!encoded_key || !encoded_value) {
           Py_DECREF(result);
           Py_DECREF(dict_items);
-          Py_DECREF(encoded_key);
+          Py_XDECREF(encoded_key);
+          Py_XDECREF(encoded_value);
           return NULL;
         }
 
         PyObject *encoded_one = PyBytes_FromObject(encoded_key);
-        if (encoded_one == NULL) {
-          Py_DECREF(result);
-          Py_DECREF(encoded_key);
-          Py_DECREF(encoded_value);
-          Py_DECREF(dict_items);
-          return NULL;
-        }
         PyObject *encoded_two = PyBytes_FromObject(encoded_value);
-        if (encoded_two == NULL) {
+        if (!encoded_one || !encoded_two) {
           Py_DECREF(result);
+          Py_DECREF(dict_items);
           Py_DECREF(encoded_key);
           Py_DECREF(encoded_value);
-          Py_DECREF(encoded_one);
-          Py_DECREF(dict_items);
+          Py_XDECREF(encoded_one);
+          Py_XDECREF(encoded_two);
           return NULL;
         }
 
@@ -706,35 +725,24 @@ static PyObject *encode_dict(PyObject *self, PyObject *obj) {
       }
 
       PyObject *encoded_key = partial_pickle(self, key);
-      if (encoded_key == NULL) {
-        Py_DECREF(result);
-        Py_DECREF(dict_items);
-        return NULL;
-      }
-
       PyObject *encoded_value = partial_pickle(self, value);
-      if (encoded_value == NULL) {
+      if (!encoded_key || !encoded_value) {
         Py_DECREF(result);
         Py_DECREF(dict_items);
-        Py_DECREF(encoded_key);
+        Py_XDECREF(encoded_key);
+        Py_XDECREF(encoded_value);
         return NULL;
       }
 
       PyObject *encoded_one = PyBytes_FromObject(encoded_key);
-      if (encoded_one == NULL) {
-        Py_DECREF(result);
-        Py_DECREF(encoded_key);
-        Py_DECREF(encoded_value);
-        Py_DECREF(dict_items);
-        return NULL;
-      }
       PyObject *encoded_two = PyBytes_FromObject(encoded_value);
-      if (encoded_two == NULL) {
+      if (!encoded_one || !encoded_two) {
         Py_DECREF(result);
+        Py_DECREF(dict_items);
         Py_DECREF(encoded_key);
         Py_DECREF(encoded_value);
-        Py_DECREF(encoded_one);
-        Py_DECREF(dict_items);
+        Py_XDECREF(encoded_one);
+        Py_XDECREF(encoded_two);
         return NULL;
       }
 
