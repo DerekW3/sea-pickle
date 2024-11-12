@@ -29,3 +29,24 @@ def test_partial_pickle():
     assert partial_pickle("") in pickle.dumps("")
     assert partial_pickle("a" * 255) in pickle.dumps("a" * 255)
     assert partial_pickle("a" * 256) in pickle.dumps("a" * 256)
+
+    assert partial_pickle(1.0101) in pickle.dumps(1.0101)
+    assert partial_pickle(101.5) in pickle.dumps(101.5)
+
+    assert partial_pickle(100) in pickle.dumps(100)
+    assert partial_pickle(-100) in pickle.dumps(-100)
+    assert partial_pickle(0) in pickle.dumps(0)
+    assert partial_pickle(-0) in pickle.dumps(-0)
+    assert partial_pickle(100000000) in pickle.dumps(100000000)
+
+    assert partial_pickle((1, 100)) in pickle.dumps((1, 100))
+    assert partial_pickle((1, "a")) in pickle.dumps((1, "a"))
+    assert partial_pickle((1, "a", 1.0)) in pickle.dumps((1, "a", 1.0))
+    assert partial_pickle((1, "a", 1, 1)) in pickle.dumps((1, "a", 1, 1))
+
+    assert partial_pickle([1, 100]) in pickle.dumps([1, 100])
+    assert partial_pickle([1, "a"]) in pickle.dumps([1, "a"])
+    assert partial_pickle([1, "a", 1.0]) in pickle.dumps([1, "a", 1.0])
+    assert partial_pickle([1, "a", 1, 1, "helloooo"]) in pickle.dumps(
+        [1, "a", 1, 1, "helloooo"]
+    )
