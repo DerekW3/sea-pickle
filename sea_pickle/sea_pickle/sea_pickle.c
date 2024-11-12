@@ -188,7 +188,33 @@ static PyObject *extract_sequence(PyObject *chunks, PyObject *idx) {
 
 static PyObject *length_packer(PyObject *length) { Py_RETURN_NONE; }
 
-static PyObject *get(PyObject *idx) { Py_RETURN_NONE; }
+static PyObject *get(PyObject *idx) {
+  if (!PyLong_Check(idx)) {
+    PyErr_SetString(PyExc_TypeError, "Expected an integer index.");
+    return NULL;
+  }
+
+  PyObject *result = PyBytes_FromStringAndSize(NULL, 0);
+
+  long index = PyLong_AsLong(idx);
+  if (index == -1 && PyErr_Occurred()) {
+    return NULL;
+  }
+
+  if (index < 256) {
+    PyBytes_ConcatAndDel(&result,
+                         PyBytes_FromStringAndSize((const char *)&BINGET, 1));
+  } else {
+    PyBytes_ConcatAndDel(
+        &result, PyBytes_FromStringAndSize((const char *)&LONG_BINGET, 1));
+  }
+
+  unsigned char byte_idx = (unsigned char)index;
+  PyBytes_ConcatAndDel(
+      &result, PyBytes_FromStringAndSize((char *)&byte_idx, sizeof(byte_idx)));
+
+  return result;
+}
 
 static PyObject *merge_strings(PyObject *str_1, PyObject *identifier_1,
                                PyObject *str_2, PyObject *identifier_2) {
