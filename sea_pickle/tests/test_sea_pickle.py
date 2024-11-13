@@ -59,6 +59,8 @@ def test_encode_str():
     which tests my pickles capability to encode
     unicode characters like the newline
     """
+    # print(len(multiline_str))
+    # print(partial_pickle(multiline_str))
     long_str = "A" * 1000
     special_char_str = "!@#$%^&*()_+[]{}|;:',.<>?/~`"
     assert merge_partials(

@@ -144,8 +144,6 @@ PyObject *partial_pickle(PyObject *self, PyObject *args) {
   for (int i = 0; i < sizeof(disbatch_table) / sizeof(disbatch_table[0]); i++) {
     if (disbatch_table[i].type != NULL &&
         PyObject_TypeCheck(obj, disbatch_table[i].type)) {
-      printf("found the type");
-      fflush(stdout);
       PyObject *result = NULL;
 
       result = disbatch_table[i].func(obj);
@@ -182,8 +180,6 @@ static PyObject *recurse_pickle(PyObject *obj) {
   for (int i = 0; i < sizeof(disbatch_table) / sizeof(disbatch_table[0]); i++) {
     if (disbatch_table[i].type != NULL &&
         PyObject_TypeCheck(obj, disbatch_table[i].type)) {
-      printf("found the type");
-      fflush(stdout);
       PyObject *result = NULL;
 
       result = disbatch_table[i].func(obj);
@@ -286,8 +282,6 @@ PyObject *merge_partials(PyObject *self, PyObject *args) {
 
   PyObject *frame_bytes;
   unsigned long long size = (unsigned long long)PyBytes_Size(result);
-  printf("%lld", size);
-  fflush(stdout);
   if (PyBytes_Size(result) >= 4 && frame_info) {
     unsigned char buffer[8];
 
@@ -783,12 +777,12 @@ static PyObject *merge_strings(PyObject *str_1, PyObject *identifier_1,
           : 8;
 
   PyObject *maintain_one =
-      PyBytes_FromStringAndSize(PyBytes_AsString(str_1) + len_bytes_1,
-                                PyBytes_Size(str_1) - len_bytes_1 - 3);
+      PyBytes_FromStringAndSize(PyBytes_AsString(str_1) + len_bytes_1 + 1,
+                                PyBytes_Size(str_1) - len_bytes_1 - 2);
 
   PyObject *maintain_two =
-      PyBytes_FromStringAndSize(PyBytes_AsString(str_2) + len_bytes_2,
-                                PyBytes_Size(str_2) - len_bytes_2 - 3);
+      PyBytes_FromStringAndSize(PyBytes_AsString(str_2) + len_bytes_2 + 1,
+                                PyBytes_Size(str_2) - len_bytes_2 - 2);
 
   if (!maintain_one || !maintain_two) {
     Py_XDECREF(maintain_one);
@@ -802,11 +796,6 @@ static PyObject *merge_strings(PyObject *str_1, PyObject *identifier_1,
     Py_DECREF(maintain_two);
     return NULL;
   }
-
-  PyBytes_ConcatAndDel(&result, maintain_one);
-  PyBytes_ConcatAndDel(&result, maintain_two);
-  PyBytes_ConcatAndDel(&result,
-                       PyBytes_FromStringAndSize((const char *)&MEMO, 1));
 
   Py_ssize_t length = PyBytes_Size(maintain_one) + PyBytes_Size(maintain_two);
   if (length < 256) {
@@ -825,6 +814,11 @@ static PyObject *merge_strings(PyObject *str_1, PyObject *identifier_1,
     PyBytes_ConcatAndDel(&result,
                          PyBytes_FromStringAndSize((char *)&length, 8));
   }
+
+  PyBytes_ConcatAndDel(&result, maintain_one);
+  PyBytes_ConcatAndDel(&result, maintain_two);
+  PyBytes_ConcatAndDel(&result,
+                       PyBytes_FromStringAndSize((const char *)&MEMO, 1));
 
   PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize(".", 1));
 
@@ -858,12 +852,12 @@ static PyObject *merge_bytes(PyObject *byte_str_1, PyObject *identifier_1,
           : 8;
 
   PyObject *maintain_one =
-      PyBytes_FromStringAndSize(PyBytes_AsString(byte_str_1) + len_bytes_1,
-                                PyBytes_Size(byte_str_1) - len_bytes_1 - 3);
+      PyBytes_FromStringAndSize(PyBytes_AsString(byte_str_1) + len_bytes_1 + 1,
+                                PyBytes_Size(byte_str_1) - len_bytes_1 - 2);
 
   PyObject *maintain_two =
-      PyBytes_FromStringAndSize(PyBytes_AsString(byte_str_2) + len_bytes_2,
-                                PyBytes_Size(byte_str_2) - len_bytes_2 - 3);
+      PyBytes_FromStringAndSize(PyBytes_AsString(byte_str_2) + len_bytes_2 + 1,
+                                PyBytes_Size(byte_str_2) - len_bytes_2 - 2);
 
   if (!maintain_one || !maintain_two) {
     Py_XDECREF(maintain_one);
@@ -877,11 +871,6 @@ static PyObject *merge_bytes(PyObject *byte_str_1, PyObject *identifier_1,
     Py_DECREF(maintain_two);
     return NULL;
   }
-
-  PyBytes_ConcatAndDel(&result, maintain_one);
-  PyBytes_ConcatAndDel(&result, maintain_two);
-  PyBytes_ConcatAndDel(&result,
-                       PyBytes_FromStringAndSize((const char *)&MEMO, 1));
 
   Py_ssize_t length = PyBytes_Size(maintain_one) + PyBytes_Size(maintain_two);
   if (length < 256) {
@@ -900,6 +889,11 @@ static PyObject *merge_bytes(PyObject *byte_str_1, PyObject *identifier_1,
     PyBytes_ConcatAndDel(&result,
                          PyBytes_FromStringAndSize((char *)&length, 8));
   }
+
+  PyBytes_ConcatAndDel(&result, maintain_one);
+  PyBytes_ConcatAndDel(&result, maintain_two);
+  PyBytes_ConcatAndDel(&result,
+                       PyBytes_FromStringAndSize((const char *)&MEMO, 1));
 
   PyBytes_ConcatAndDel(&result, PyBytes_FromStringAndSize(".", 1));
 
@@ -1151,8 +1145,6 @@ static PyObject *encode_tuple(PyObject *obj) {
     PyErr_SetString(PyExc_TypeError, "Expected a tuple.");
     return NULL;
   }
-  printf("hello there");
-  fflush(stdout);
 
   Py_ssize_t length = PyTuple_Size(obj);
 
