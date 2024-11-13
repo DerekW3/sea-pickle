@@ -1239,9 +1239,9 @@ static PyObject *encode_list(PyObject *obj) {
         }
 
         PyBytes_ConcatAndDel(&result, encoded);
-        PyBytes_ConcatAndDel(
-            &result, PyBytes_FromStringAndSize((const char *)&APPENDS, 1));
       }
+      PyBytes_ConcatAndDel(
+          &result, PyBytes_FromStringAndSize((const char *)&APPENDS, 1));
     } else if (n == 1) {
       PyObject *item = PyList_GetItem(obj, idx);
       Py_INCREF(item);
@@ -1344,12 +1344,12 @@ static PyObject *encode_dict(PyObject *obj) {
 
         PyBytes_ConcatAndDel(&result, encoded_one);
         PyBytes_ConcatAndDel(&result, encoded_two);
-        PyBytes_ConcatAndDel(
-            &result, PyBytes_FromStringAndSize((const char *)&SETITEMS, 1));
 
         Py_DECREF(encoded_key);
         Py_DECREF(encoded_value);
       }
+      PyBytes_ConcatAndDel(
+          &result, PyBytes_FromStringAndSize((const char *)&SETITEMS, 1));
     } else if (n == 1) {
       PyObject *kv_pair = PyList_GetItem(dict_items, idx);
       if (!kv_pair || !PyTuple_Check(kv_pair) || PyTuple_Size(kv_pair) != 2) {
