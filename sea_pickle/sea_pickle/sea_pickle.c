@@ -1011,7 +1011,7 @@ static PyObject *encode_long(PyObject *obj) {
     return NULL;
   }
 
-  long value = PyLong_AsLong(obj);
+  long long value = PyLong_AsLongLong(obj);
   if (value == -1 && PyErr_Occurred()) {
     return NULL;
   }
@@ -1065,19 +1065,20 @@ static PyObject *encode_long(PyObject *obj) {
     num_bytes++;
   }
 
-  unsigned char *encoded_long = (unsigned char *)malloc(num_bytes);
-  if (!encoded_long) {
-    Py_DECREF(result);
+  const char *encoded_long = PyBytes_AsString(obj);
+  Py_ssize_t encoded_len = PyBytes_Size(obj);
+  if (encoded_len < 0) {
     return NULL;
   }
 
-  for (int i = 0; i < num_bytes; i++) {
-    encoded_long[i] = (value >> (i * 8)) & 0xFF;
+  PyObject *long_result;
+  if (value < 0 && num_bytes > 1 &&
+      (encoded_long[encoded_len - 1] == (char)0xFF &&
+       (encoded_long[encoded_len - 2] & (char)0x80) != 0)) {
+    long_result = PyBytes_FromStringAndSize(encoded_long, encoded_len - 1);
+  } else {
+    long_result = PyBytes_FromStringAndSize(encoded_long, encoded_len);
   }
-
-  PyObject *long_result =
-      PyBytes_FromStringAndSize((char *)encoded_long, num_bytes);
-  free(encoded_long);
 
   if (num_bytes < 256) {
     PyBytes_ConcatAndDel(&result,
@@ -1173,12 +1174,14 @@ static PyObject *encode_tuple(PyObject *obj) {
     Py_DECREF(item);
     if (!encoded) {
       Py_DECREF(result);
+      return NULL;
     }
 
     PyObject *encoded_bytes = PyBytes_FromObject(encoded);
     Py_DECREF(encoded);
     if (!encoded_bytes) {
       Py_DECREF(result);
+      return NULL;
     }
 
     PyBytes_ConcatAndDel(&result, encoded_bytes);
