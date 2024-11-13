@@ -264,17 +264,17 @@ PyObject *merge_partials(PyObject *self, PyObject *args) {
     memcpy(PyBytes_AsString(concatted) + PyBytes_Size(obj1),
            PyBytes_AsString(obj2), PyBytes_Size(obj2));
 
-    PyObject *chunks = no_memo ? Py_None : get_chunks(concatted);
-    PyObject *temp_memo = no_memo ? PyDict_New() : get_memo(chunks);
+    PyObject *chunks = no_memo ? PyList_New(0) : get_chunks(concatted);
+    // PyObject *temp_memo = no_memo ? PyDict_New() : get_memo(chunks);
 
-    if (PyBytes_Size(obj1) > 0 && PyBytes_Size(obj2) > 0 && frame_info) {
-      result = listize(temp_memo, obj1, obj2);
-    } else {
-      PyBytes_ConcatAndDel(&result, concatted);
-      PyBytes_ConcatAndDel(&result, PyBytes_FromString("."));
-    }
+    // if (PyBytes_Size(obj1) > 0 && PyBytes_Size(obj2) > 0 && frame_info) {
+    //   result = listize(temp_memo, obj1, obj2);
+    // } else {
+    //   result = concatted;
+    //   PyBytes_ConcatAndDel(&result, PyBytes_FromString("."));
+    // }
 
-    Py_XDECREF(concatted);
+    // Py_XDECREF(concatted);
   }
 
   PyObject *protocol_bytes =
@@ -453,8 +453,8 @@ static PyObject *listize(PyObject *memory, PyObject *obj1, PyObject *obj2) {
     return NULL;
   }
 
-  PyBytes_ConcatAndDel(&combined, obj1);
-  PyBytes_ConcatAndDel(&combined, obj2);
+  PyBytes_Concat(&combined, obj1);
+  PyBytes_Concat(&combined, obj2);
 
   PyObject *keys = PyDict_Keys(memory);
   if (!keys) {
@@ -563,17 +563,21 @@ static PyObject *listize(PyObject *memory, PyObject *obj1, PyObject *obj2) {
   Py_DECREF(keys);
   Py_DECREF(combined);
   PyObject *new_res = PyBytes_FromStringAndSize(NULL, 0);
+  if (!new_res) {
+    return NULL;
+  }
   PyBytes_ConcatAndDel(&new_res,
                        PyBytes_FromStringAndSize((const char *)&EMPTY_LIST, 1));
   PyBytes_ConcatAndDel(&new_res,
                        PyBytes_FromStringAndSize((const char *)&MEMO, 1));
   PyBytes_ConcatAndDel(&new_res,
                        PyBytes_FromStringAndSize((const char *)&MARK, 1));
-  PyBytes_ConcatAndDel(&new_res, result);
+  PyBytes_ConcatAndDel(&new_res, PyBytes_FromObject(result));
   PyBytes_ConcatAndDel(&new_res,
                        PyBytes_FromStringAndSize((const char *)&APPENDS, 1));
   PyBytes_ConcatAndDel(&new_res, PyBytes_FromStringAndSize(".", 1));
-  return result;
+
+  return new_res;
 }
 
 int compare_length(const void *a, const void *b) {
