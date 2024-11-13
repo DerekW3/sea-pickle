@@ -283,10 +283,29 @@ PyObject *merge_partials(PyObject *self, PyObject *args) {
 
   PyObject *protocol_bytes =
       frame_info ? PyBytes_FromString("\x80\x04") : PyBytes_FromString("");
-  PyObject *frame_bytes =
-      (PyBytes_Size(result) >= 4 && frame_info)
-          ? PyBytes_FromFormat("\x95%lu", (unsigned long)PyBytes_Size(result))
-          : PyBytes_FromString("");
+
+  PyObject *frame_bytes;
+  unsigned long long size = (unsigned long long)PyBytes_Size(result);
+  printf("%lld", size);
+  fflush(stdout);
+  if (PyBytes_Size(result) >= 4 && frame_info) {
+    unsigned char buffer[8];
+
+    buffer[0] = (size & 0xFF);
+    buffer[1] = (size >> 8) & 0xFF;
+    buffer[2] = (size >> 16) & 0xFF;
+    buffer[3] = (size >> 24) & 0xFF;
+    buffer[4] = (size >> 32) & 0xFF;
+    buffer[5] = (size >> 40) & 0xFF;
+    buffer[6] = (size >> 48) & 0xFF;
+    buffer[7] = (size >> 56) & 0xFF;
+
+    frame_bytes = PyBytes_FromString("\x95");
+    PyBytes_Concat(&frame_bytes,
+                   PyBytes_FromStringAndSize((const char *)buffer, 8));
+  } else {
+    frame_bytes = PyBytes_FromString("");
+  }
 
   if (!frame_info) {
     Py_ssize_t result_size = PyBytes_Size(result);

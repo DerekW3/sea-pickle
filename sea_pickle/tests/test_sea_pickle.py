@@ -4,6 +4,7 @@ from typing import Callable
 import sea_pickle
 
 partial_pickle: Callable = sea_pickle.partial_pickle
+merge_partials: Callable = sea_pickle.merge_partials
 
 
 def test_partial_pickle():
@@ -50,3 +51,38 @@ def test_partial_pickle():
     assert partial_pickle([1, "a", 1, 1, "helloooo"]) in pickle.dumps(
         [1, "a", 1, 1, "helloooo"]
     )
+
+
+def test_encode_str():
+    multiline_str = """
+    This is a multiline string
+    which tests my pickles capability to encode
+    unicode characters like the newline
+    """
+    long_str = "A" * 1000
+    special_char_str = "!@#$%^&*()_+[]{}|;:',.<>?/~`"
+    assert merge_partials(
+        partial_pickle(multiline_str[:100]), partial_pickle(multiline_str[100:])
+    ) == pickle.dumps(multiline_str)
+
+    assert merge_partials(partial_pickle(""), partial_pickle("")) == pickle.dumps("")
+
+    assert merge_partials(
+        partial_pickle(long_str[:500]), partial_pickle(long_str[500:])
+    ) == pickle.dumps(long_str)
+
+    assert merge_partials(
+        partial_pickle(special_char_str[:10]), partial_pickle(special_char_str[10:])
+    ) == pickle.dumps(special_char_str)
+
+    assert merge_partials(
+        partial_pickle("Test string with spaces"), partial_pickle(" and more text.")
+    ) == pickle.dumps("Test string with spaces and more text.")
+
+    assert merge_partials(
+        partial_pickle("Single"), partial_pickle("String")
+    ) == pickle.dumps("SingleString")
+
+    assert merge_partials(
+        partial_pickle("Leading space"), partial_pickle("Trailing space ")
+    ) == pickle.dumps("Leading spaceTrailing space ")
