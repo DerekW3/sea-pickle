@@ -91,7 +91,7 @@ def test_encode_str():
 
 def test_encode_float():
     assert merge_partials(
-        partial_pickle(-1.090934), partial_pickle(10000000.0101), False, True
+        partial_pickle(-1.090934), partial_pickle(10000000.0101)
     ) == pickle.dumps([-1.090934, 10000000.0101])
 
     # assert merge_partials(partial_pickle(0.0), partial_pickle(1.5)) == pickle.dumps(

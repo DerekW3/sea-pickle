@@ -265,16 +265,16 @@ PyObject *merge_partials(PyObject *self, PyObject *args) {
            PyBytes_AsString(obj2), PyBytes_Size(obj2));
 
     PyObject *chunks = no_memo ? PyList_New(0) : get_chunks(concatted);
-    // PyObject *temp_memo = no_memo ? PyDict_New() : get_memo(chunks);
+    PyObject *temp_memo = no_memo ? PyDict_New() : get_memo(chunks);
 
-    // if (PyBytes_Size(obj1) > 0 && PyBytes_Size(obj2) > 0 && frame_info) {
-    //   result = listize(temp_memo, obj1, obj2);
-    // } else {
-    //   result = concatted;
-    //   PyBytes_ConcatAndDel(&result, PyBytes_FromString("."));
-    // }
+    if (PyBytes_Size(obj1) > 0 && PyBytes_Size(obj2) > 0 && frame_info) {
+      result = listize(temp_memo, obj1, obj2);
+    } else {
+      result = concatted;
+      PyBytes_ConcatAndDel(&result, PyBytes_FromString("."));
+    }
 
-    // Py_XDECREF(concatted);
+    Py_XDECREF(concatted);
   }
 
   PyObject *protocol_bytes =
@@ -334,7 +334,7 @@ static PyObject *get_chunks(PyObject *obj) {
 
   Py_ssize_t left = 0, right = 1;
 
-  while (left < right) {
+  while (right < length) {
     const char *curr_byte = data + left;
 
     if (memcmp(curr_byte, &SHORT_UNICODE, 1) == 0 ||
