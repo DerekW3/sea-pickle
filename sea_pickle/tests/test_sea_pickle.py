@@ -94,41 +94,41 @@ def test_encode_float():
         partial_pickle(-1.090934), partial_pickle(10000000.0101)
     ) == pickle.dumps([-1.090934, 10000000.0101])
 
-    # assert merge_partials(partial_pickle(0.0), partial_pickle(1.5)) == pickle.dumps(
-    #     [0.0, 1.5]
-    # )
+    assert merge_partials(partial_pickle(0.0), partial_pickle(1.5)) == pickle.dumps(
+        [0.0, 1.5]
+    )
 
-    # assert merge_partials(
-    #     partial_pickle(3.14159), partial_pickle(2.71828)
-    # ) == pickle.dumps([3.14159, 2.71828])
+    assert merge_partials(
+        partial_pickle(3.14159), partial_pickle(2.71828)
+    ) == pickle.dumps([3.14159, 2.71828])
 
-    # assert merge_partials(
-    #     partial_pickle(-100.0), partial_pickle(100.0)
-    # ) == pickle.dumps([-100.0, 100.0])
+    assert merge_partials(
+        partial_pickle(-100.0), partial_pickle(100.0)
+    ) == pickle.dumps([-100.0, 100.0])
 
-    # assert merge_partials(partial_pickle(1.0), partial_pickle(0.0)) == pickle.dumps(
-    #     [1.0, 0.0]
-    # )
+    assert merge_partials(partial_pickle(1.0), partial_pickle(0.0)) == pickle.dumps(
+        [1.0, 0.0]
+    )
 
-    # assert merge_partials(
-    #     partial_pickle(1.23456789), partial_pickle(9.87654321)
-    # ) == pickle.dumps([1.23456789, 9.87654321])
+    assert merge_partials(
+        partial_pickle(1.23456789), partial_pickle(9.87654321)
+    ) == pickle.dumps([1.23456789, 9.87654321])
 
-    # assert merge_partials(
-    #     partial_pickle(float("inf")), partial_pickle(float("-inf"))
-    # ) == pickle.dumps([float("inf"), float("-inf")])
+    assert merge_partials(
+        partial_pickle(float("inf")), partial_pickle(float("-inf"))
+    ) == pickle.dumps([float("inf"), float("-inf")])
 
-    # assert merge_partials(
-    #     partial_pickle(float("nan")), partial_pickle(42.0)
-    # ) == pickle.dumps([float("nan"), 42.0])
+    assert merge_partials(
+        partial_pickle(float("nan")), partial_pickle(42.0)
+    ) == pickle.dumps([float("nan"), 42.0])
 
-    # assert merge_partials(partial_pickle(0.1), partial_pickle(0.2)) == pickle.dumps(
-    #     [0.1, 0.2]
-    # )
+    assert merge_partials(partial_pickle(0.1), partial_pickle(0.2)) == pickle.dumps(
+        [0.1, 0.2]
+    )
 
-    # assert merge_partials(partial_pickle(-0.5), partial_pickle(0.5)) == pickle.dumps(
-    #     [-0.5, 0.5]
-    # )
+    assert merge_partials(partial_pickle(-0.5), partial_pickle(0.5)) == pickle.dumps(
+        [-0.5, 0.5]
+    )
 
 
 def test_no_memo():
