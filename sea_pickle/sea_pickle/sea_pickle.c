@@ -85,13 +85,13 @@ int in_indicators(const char *elem) {
 
 typedef struct {
   PyTypeObject *type;
-  PyObject *(*func)(PyObject *, PyObject *);
-  int arg_count;
+  PyObject *(*func)(PyObject *);
 } DisbatchEntry;
 
 PyObject *partial_pickle(PyObject *self, PyObject *args);
 PyObject *merge_partials(PyObject *self, PyObject *args);
 
+static PyObject *recurse_pickle(PyObject *obj);
 static PyObject *get_chunks(PyObject *obj);
 static PyObject *get_memo(PyObject *chunks);
 static PyObject *listize(PyObject *memory, PyObject *obj1, PyObject *obj2);
@@ -109,21 +109,19 @@ static PyObject *encode_string(PyObject *obj);
 static PyObject *encode_float(PyObject *obj);
 static PyObject *encode_long(PyObject *obj);
 static PyObject *encode_bytes(PyObject *obj);
-static PyObject *encode_tuple(PyObject *self, PyObject *obj);
-static PyObject *encode_list(PyObject *self, PyObject *obj);
-static PyObject *encode_dict(PyObject *self, PyObject *obj);
+static PyObject *encode_tuple(PyObject *obj);
+static PyObject *encode_list(PyObject *obj);
+static PyObject *encode_dict(PyObject *obj);
 
-static DisbatchEntry disbatch_table[] = {
-    {&PyBool_Type, (PyObject * (*)(PyObject *, PyObject *)) encode_bool, 1},
-    {&PyUnicode_Type, (PyObject * (*)(PyObject *, PyObject *)) encode_string,
-     1},
-    {&PyFloat_Type, (PyObject * (*)(PyObject *, PyObject *)) encode_float, 1},
-    {&PyLong_Type, (PyObject * (*)(PyObject *, PyObject *)) encode_long, 1},
-    {&PyBytes_Type, (PyObject * (*)(PyObject *, PyObject *)) encode_bytes, 1},
-    {&PyTuple_Type, encode_tuple, 2},
-    {&PyList_Type, encode_list, 2},
-    {&PyDict_Type, encode_dict, 2},
-    {NULL, NULL, 0}};
+static DisbatchEntry disbatch_table[] = {{&PyBool_Type, encode_bool},
+                                         {&PyUnicode_Type, encode_string},
+                                         {&PyFloat_Type, encode_float},
+                                         {&PyLong_Type, encode_long},
+                                         {&PyBytes_Type, encode_bytes},
+                                         {&PyTuple_Type, encode_tuple},
+                                         {&PyList_Type, encode_list},
+                                         {&PyDict_Type, encode_dict},
+                                         {NULL, NULL}};
 
 PyObject *partial_pickle(PyObject *self, PyObject *args) {
   PyObject *obj;
@@ -150,11 +148,45 @@ PyObject *partial_pickle(PyObject *self, PyObject *args) {
       fflush(stdout);
       PyObject *result = NULL;
 
-      if (disbatch_table[i].arg_count == 1) {
-        result = disbatch_table[i].func(obj, NULL);
-      } else {
-        result = disbatch_table[i].func(self, obj);
+      result = disbatch_table[i].func(obj);
+
+      if (!result) {
+        Py_DECREF(pickled_obj);
+        return NULL;
       }
+
+      PyBytes_ConcatAndDel(&pickled_obj, result);
+      break;
+    }
+  }
+
+  if (!pickled_obj) {
+    PyErr_SetString(PyExc_TypeError, "Unsupported type for encoding.");
+    return NULL;
+  }
+
+  return pickled_obj;
+}
+
+static PyObject *recurse_pickle(PyObject *obj) {
+  PyObject *pickled_obj = PyBytes_FromStringAndSize(NULL, 0);
+  if (!pickled_obj) {
+    return NULL;
+  }
+
+  if (obj == Py_None) {
+    PyBytes_ConcatAndDel(&pickled_obj, encode_none());
+    return pickled_obj;
+  }
+
+  for (int i = 0; i < sizeof(disbatch_table) / sizeof(disbatch_table[0]); i++) {
+    if (disbatch_table[i].type != NULL &&
+        PyObject_TypeCheck(obj, disbatch_table[i].type)) {
+      printf("found the type");
+      fflush(stdout);
+      PyObject *result = NULL;
+
+      result = disbatch_table[i].func(obj);
 
       if (!result) {
         Py_DECREF(pickled_obj);
@@ -1095,11 +1127,13 @@ static PyObject *encode_bytes(PyObject *obj) {
   return result;
 }
 
-static PyObject *encode_tuple(PyObject *self, PyObject *obj) {
+static PyObject *encode_tuple(PyObject *obj) {
   if (!PyTuple_Check(obj)) {
     PyErr_SetString(PyExc_TypeError, "Expected a tuple.");
     return NULL;
   }
+  printf("hello there");
+  fflush(stdout);
 
   Py_ssize_t length = PyTuple_Size(obj);
 
@@ -1119,7 +1153,9 @@ static PyObject *encode_tuple(PyObject *self, PyObject *obj) {
 
   for (Py_ssize_t i = 0; i < length; i++) {
     PyObject *item = PyTuple_GetItem(obj, i);
-    PyObject *encoded = partial_pickle(self, item);
+    Py_INCREF(item);
+    PyObject *encoded = recurse_pickle(item);
+    Py_DECREF(item);
     if (!encoded) {
       Py_DECREF(result);
     }
@@ -1158,7 +1194,7 @@ static PyObject *encode_tuple(PyObject *self, PyObject *obj) {
   return result;
 }
 
-static PyObject *encode_list(PyObject *self, PyObject *obj) {
+static PyObject *encode_list(PyObject *obj) {
   if (!PyList_Check(obj)) {
     PyErr_SetString(PyExc_TypeError, "Expected a list");
     return NULL;
@@ -1187,7 +1223,9 @@ static PyObject *encode_list(PyObject *self, PyObject *obj) {
 
       for (Py_ssize_t j = 0; j < n; j++) {
         PyObject *item = PyList_GetItem(obj, idx + j);
-        PyObject *encoded_item = partial_pickle(self, item);
+        Py_INCREF(item);
+        PyObject *encoded_item = recurse_pickle(item);
+        Py_DECREF(item);
         if (!encoded_item) {
           Py_DECREF(result);
           return NULL;
@@ -1206,7 +1244,9 @@ static PyObject *encode_list(PyObject *self, PyObject *obj) {
       }
     } else if (n == 1) {
       PyObject *item = PyList_GetItem(obj, idx);
-      PyObject *encoded_item = partial_pickle(self, item);
+      Py_INCREF(item);
+      PyObject *encoded_item = recurse_pickle(item);
+      Py_DECREF(item);
       if (!encoded_item) {
         Py_DECREF(result);
         return NULL;
@@ -1230,7 +1270,7 @@ static PyObject *encode_list(PyObject *self, PyObject *obj) {
   return result;
 }
 
-static PyObject *encode_dict(PyObject *self, PyObject *obj) {
+static PyObject *encode_dict(PyObject *obj) {
   if (!PyDict_Check(obj)) {
     PyErr_SetString(PyExc_TypeError, "Expected a dictionary.");
     return NULL;
@@ -1276,8 +1316,12 @@ static PyObject *encode_dict(PyObject *self, PyObject *obj) {
           return NULL;
         }
 
-        PyObject *encoded_key = partial_pickle(self, key);
-        PyObject *encoded_value = partial_pickle(self, value);
+        Py_INCREF(key);
+        Py_INCREF(value);
+        PyObject *encoded_key = recurse_pickle(key);
+        PyObject *encoded_value = recurse_pickle(value);
+        Py_DECREF(key);
+        Py_DECREF(value);
         if (!encoded_key || !encoded_value) {
           Py_DECREF(result);
           Py_DECREF(dict_items);
@@ -1322,8 +1366,8 @@ static PyObject *encode_dict(PyObject *self, PyObject *obj) {
         return NULL;
       }
 
-      PyObject *encoded_key = partial_pickle(self, key);
-      PyObject *encoded_value = partial_pickle(self, value);
+      PyObject *encoded_key = recurse_pickle(key);
+      PyObject *encoded_value = recurse_pickle(value);
       if (!encoded_key || !encoded_value) {
         Py_DECREF(result);
         Py_DECREF(dict_items);
