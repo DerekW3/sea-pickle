@@ -255,26 +255,51 @@ PyObject *merge_partials(PyObject *self, PyObject *args) {
         merge_bytes(obj1, PyBytes_FromStringAndSize(&identifier_1_byte, 1),
                     obj2, PyBytes_FromStringAndSize(&identifier_2_byte, 1));
   } else {
-    PyObject *concatted = PyBytes_FromStringAndSize(NULL, 0);
+    char *str1 = PyBytes_AsString(obj1);
+    char *str2 = PyBytes_AsString(obj2);
+    strcat(str1, str2);
+
+    PyObject *concatted = PyBytes_FromString(str1);
     if (!concatted) {
       return NULL;
     }
-    memcpy(PyBytes_AsString(concatted), PyBytes_AsString(obj1),
-           PyBytes_Size(obj1));
-    memcpy(PyBytes_AsString(concatted) + PyBytes_Size(obj1),
-           PyBytes_AsString(obj2), PyBytes_Size(obj2));
+
+    PyObject_Print(concatted, stdout, 0);
 
     PyObject *chunks = no_memo ? PyList_New(0) : get_chunks(concatted);
-    PyObject *temp_memo = no_memo ? PyDict_New() : get_memo(chunks);
+    // PyObject *temp_memo = no_memo ? PyDict_New() : get_memo(chunks);
 
-    if (PyBytes_Size(obj1) > 0 && PyBytes_Size(obj2) > 0 && frame_info) {
-      result = listize(temp_memo, obj1, obj2);
-    } else {
-      result = concatted;
-      PyBytes_ConcatAndDel(&result, PyBytes_FromString("."));
+    if (!chunks) {
+      printf("NULLLLLL");
+      fflush(stdout);
+      return NULL;
     }
 
-    Py_XDECREF(concatted);
+    Py_ssize_t size = PyList_Size(chunks);
+    printf("%lu", size);
+    for (Py_ssize_t i = 0; i < size; i++) {
+      PyObject *item = PyList_GetItem(chunks, i);
+      PyObject_Print(item, stdout, 0);
+      printf("\n");
+    }
+    fflush(stdout);
+
+    // PyObject *key, *value;
+    // Py_ssize_t pos = 0;
+
+    // while (PyDict_Next(temp_memo, &pos, &key, &value)) {
+    //   PyObject_Print(key, stdout, 0);
+    //   printf(": ");
+    //   PyObject_Print(value, stdout, 0);
+    //   printf("\n");
+    // }
+
+    // if (PyBytes_Size(obj1) > 0 && PyBytes_Size(obj2) > 0 && frame_info) {
+    //   result = listize(temp_memo, obj1, obj2);
+    // } else {
+    result = concatted;
+    PyBytes_ConcatAndDel(&result, PyBytes_FromString("."));
+    // }
   }
 
   PyObject *protocol_bytes =
@@ -346,7 +371,7 @@ static PyObject *get_chunks(PyObject *obj) {
       memcpy(&size, data + right, 4);
       right += size + 1;
     } else if (memcmp(curr_byte, &LONG_UNICODE, 1) == 0 ||
-               memcmp(curr_byte, &BINBYTES8, 1)) {
+               memcmp(curr_byte, &BINBYTES8, 1) == 0) {
       uint64_t size;
       memcpy(&size, data + right, 8);
       right += size + 1;
@@ -360,12 +385,14 @@ static PyObject *get_chunks(PyObject *obj) {
     }
 
     PyObject *chunk = PyBytes_FromStringAndSize(data + left, right - left);
+
     if (!chunk) {
+      fflush(stdout);
       Py_DECREF(chunks);
       return NULL;
     }
     PyList_Append(chunks, chunk);
-    Py_DECREF(chunk);
+    Py_XDECREF(chunk);
     left = right;
     right++;
   }
@@ -395,11 +422,15 @@ static PyObject *get_memo(PyObject *chunks) {
         memcmp(PyBytes_AsString(chunk) + PyBytes_Size(chunk) - 1, &MEMO, 1) ==
             0 &&
         memcmp(PyBytes_AsString(chunk), &EMPTY_DICT, 1) != 0) {
+      printf("memo found");
+      fflush(stdout);
       if (PyBytes_Size(chunk) > 1 &&
           memcmp(PyBytes_AsString(chunk) + PyBytes_Size(chunk) - 2, &TUPLE1,
                  1) >= 0 &&
           memcmp(PyBytes_AsString(chunk) + PyBytes_Size(chunk) - 2, &TUPLE3,
                  1) <= 0) {
+        printf("tuple found");
+        fflush(stdout);
         PyObject *extracted_tuple = extract_tuple(chunks, i);
         if (extracted_tuple && !PyDict_Contains(new_memo, extracted_tuple)) {
           PyDict_SetItem(new_memo, extracted_tuple,

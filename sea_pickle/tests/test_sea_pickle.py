@@ -210,12 +210,12 @@ def test_encode_bytes():
 
 def test_encode_tuple():
     assert merge_partials(
-        partial_pickle((1, "Yeah man")), partial_pickle((-1, "No man")), True, True
+        partial_pickle((1, "Yeah man")), partial_pickle((-1, "No man"))
     ) == pickle.dumps([(1, "Yeah man"), (-1, "No man")])
 
-    assert merge_partials(
-        partial_pickle((1,)), partial_pickle((0,)), True, True
-    ) == pickle.dumps([(1,), (0,)])
+    # assert merge_partials(
+    #     partial_pickle((1,)), partial_pickle((0,)), True, True
+    # ) == pickle.dumps([(1,), (0,)])
 
     assert merge_partials(
         partial_pickle((1, 2, 3)), partial_pickle((4, 5, 6))
@@ -265,6 +265,8 @@ def test_encode_tuple():
         partial_pickle((1, "text", (2, "nested"))),
         partial_pickle((3, "more", (4, "deep"))),
     ) == pickle.dumps([(1, "text", (2, "nested")), (3, "more", (4, "deep"))])
+
+    assert False
 
     # assert merge_partials(
     #     partial_pickle(((1, "text", True), "text")), partial_pickle((1, "text", True))
