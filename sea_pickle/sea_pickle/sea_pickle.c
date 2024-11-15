@@ -264,42 +264,21 @@ PyObject *merge_partials(PyObject *self, PyObject *args) {
       return NULL;
     }
 
-    PyObject_Print(concatted, stdout, 0);
-
     PyObject *chunks = no_memo ? PyList_New(0) : get_chunks(concatted);
-    // PyObject *temp_memo = no_memo ? PyDict_New() : get_memo(chunks);
+    PyObject *temp_memo = no_memo ? PyDict_New() : get_memo(chunks);
 
-    if (!chunks) {
-      printf("NULLLLLL");
-      fflush(stdout);
+    PyObject_Print(temp_memo, stdout, 0);
+    fflush(stdout);
+    if (!chunks || !temp_memo) {
       return NULL;
     }
 
-    Py_ssize_t size = PyList_Size(chunks);
-    printf("%lu", size);
-    for (Py_ssize_t i = 0; i < size; i++) {
-      PyObject *item = PyList_GetItem(chunks, i);
-      PyObject_Print(item, stdout, 0);
-      printf("\n");
+    if (PyBytes_Size(obj1) > 0 && PyBytes_Size(obj2) > 0 && frame_info) {
+      result = listize(temp_memo, obj1, obj2);
+    } else {
+      result = concatted;
+      PyBytes_ConcatAndDel(&result, PyBytes_FromString("."));
     }
-    fflush(stdout);
-
-    // PyObject *key, *value;
-    // Py_ssize_t pos = 0;
-
-    // while (PyDict_Next(temp_memo, &pos, &key, &value)) {
-    //   PyObject_Print(key, stdout, 0);
-    //   printf(": ");
-    //   PyObject_Print(value, stdout, 0);
-    //   printf("\n");
-    // }
-
-    // if (PyBytes_Size(obj1) > 0 && PyBytes_Size(obj2) > 0 && frame_info) {
-    //   result = listize(temp_memo, obj1, obj2);
-    // } else {
-    result = concatted;
-    PyBytes_ConcatAndDel(&result, PyBytes_FromString("."));
-    // }
   }
 
   PyObject *protocol_bytes =
@@ -422,15 +401,11 @@ static PyObject *get_memo(PyObject *chunks) {
         memcmp(PyBytes_AsString(chunk) + PyBytes_Size(chunk) - 1, &MEMO, 1) ==
             0 &&
         memcmp(PyBytes_AsString(chunk), &EMPTY_DICT, 1) != 0) {
-      printf("memo found");
-      fflush(stdout);
       if (PyBytes_Size(chunk) > 1 &&
           memcmp(PyBytes_AsString(chunk) + PyBytes_Size(chunk) - 2, &TUPLE1,
                  1) >= 0 &&
           memcmp(PyBytes_AsString(chunk) + PyBytes_Size(chunk) - 2, &TUPLE3,
                  1) <= 0) {
-        printf("tuple found");
-        fflush(stdout);
         PyObject *extracted_tuple = extract_tuple(chunks, i);
         if (extracted_tuple && !PyDict_Contains(new_memo, extracted_tuple)) {
           PyDict_SetItem(new_memo, extracted_tuple,
@@ -524,6 +499,8 @@ static PyObject *listize(PyObject *memory, PyObject *obj1, PyObject *obj2) {
 
   for (Py_ssize_t i = 0; i < num_keys; i++) {
     PyObject *memoized = key_array[i];
+    PyObject_Print(memoized, stdout, 0);
+    fflush(stdout);
     PyObject *idx_obj = PyDict_GetItem(memory, memoized);
     PyObject *replacement = get(idx_obj);
 
@@ -618,7 +595,7 @@ int compare_length(const void *a, const void *b) {
   Py_ssize_t len_a = PyBytes_Size(obj_a);
   Py_ssize_t len_b = PyBytes_Size(obj_b);
 
-  return (len_a > len_b) - (len_a < len_b);
+  return (len_a < len_b) - (len_a > len_b);
 }
 
 static PyObject *extract_tuple(PyObject *chunks, Py_ssize_t idx) {
