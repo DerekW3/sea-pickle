@@ -518,10 +518,16 @@ static PyObject *listize(PyObject *memory, PyObject *obj1, PyObject *obj2) {
 
       const char *start = curr;
 
+      int first_occ = 1;
+
       while ((start = strstr(start, memoized_str)) != NULL) {
         Py_ssize_t seg_length = start - curr;
 
         Py_ssize_t new_res_size = result_size + seg_length + replacement_len;
+        if (first_occ) {
+          new_res_size -= replacement_len;
+          new_res_size += memoized_len;
+        }
         PyObject *new_result = PyBytes_FromStringAndSize(NULL, new_res_size);
         if (!new_result) {
           Py_DECREF(replacement);
@@ -533,14 +539,22 @@ static PyObject *listize(PyObject *memory, PyObject *obj1, PyObject *obj2) {
 
         memcpy(PyBytes_AsString(new_result), result_buffer, result_size);
         memcpy(PyBytes_AsString(new_result) + result_size, curr, seg_length);
-        memcpy(PyBytes_AsString(new_result) + result_size + seg_length,
-               replacement_str, replacement_len);
+        if (!first_occ) {
+          memcpy(PyBytes_AsString(new_result) + result_size + seg_length,
+                 replacement_str, replacement_len);
+        } else {
+          memcpy(PyBytes_AsString(new_result) + result_size + seg_length,
+                 memoized_str, memoized_len);
+        }
 
         Py_DECREF(result);
         result = new_result;
         result_buffer = PyBytes_AsString(result);
         result_size = new_res_size;
 
+        if (first_occ) {
+          first_occ = 0;
+        }
         start += memoized_len;
         curr = start;
       }
