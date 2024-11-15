@@ -267,8 +267,6 @@ PyObject *merge_partials(PyObject *self, PyObject *args) {
     PyObject *chunks = no_memo ? PyList_New(0) : get_chunks(concatted);
     PyObject *temp_memo = no_memo ? PyDict_New() : get_memo(chunks);
 
-    PyObject_Print(temp_memo, stdout, 0);
-    fflush(stdout);
     if (!chunks || !temp_memo) {
       return NULL;
     }
@@ -279,6 +277,10 @@ PyObject *merge_partials(PyObject *self, PyObject *args) {
       result = concatted;
       PyBytes_ConcatAndDel(&result, PyBytes_FromString("."));
     }
+
+    Py_XDECREF(concatted);
+    Py_XDECREF(chunks);
+    Py_XDECREF(temp_memo);
   }
 
   PyObject *protocol_bytes =
@@ -336,7 +338,8 @@ static PyObject *get_chunks(PyObject *obj) {
     return NULL;
   }
 
-  Py_ssize_t left = 0, right = 1;
+  Py_ssize_t left = 0;
+  Py_ssize_t right = 1;
 
   while (right < length) {
     const char *curr_byte = data + left;
@@ -361,6 +364,10 @@ static PyObject *get_chunks(PyObject *obj) {
     while (right < length && in_indicators(data + left) &&
            !in_indicators(data + right)) {
       right++;
+    }
+
+    while (right >= length) {
+      right--;
     }
 
     PyObject *chunk = PyBytes_FromStringAndSize(data + left, right - left);
@@ -499,8 +506,6 @@ static PyObject *listize(PyObject *memory, PyObject *obj1, PyObject *obj2) {
 
   for (Py_ssize_t i = 0; i < num_keys; i++) {
     PyObject *memoized = key_array[i];
-    PyObject_Print(memoized, stdout, 0);
-    fflush(stdout);
     PyObject *idx_obj = PyDict_GetItem(memory, memoized);
     PyObject *replacement = get(idx_obj);
 
