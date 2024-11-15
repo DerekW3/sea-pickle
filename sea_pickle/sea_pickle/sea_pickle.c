@@ -261,6 +261,7 @@ PyObject *merge_partials(PyObject *self, PyObject *args) {
 
     PyObject *concatted = PyBytes_FromString(str1);
     if (!concatted) {
+      Py_DECREF(result);
       return NULL;
     }
 
@@ -268,6 +269,7 @@ PyObject *merge_partials(PyObject *self, PyObject *args) {
     PyObject *temp_memo = no_memo ? PyDict_New() : get_memo(chunks);
 
     if (!chunks || !temp_memo) {
+      Py_DECREF(result);
       return NULL;
     }
 
