@@ -570,13 +570,16 @@ static PyObject *listize(PyObject *memory, PyObject *obj1, PyObject *obj2) {
         }
 
         PyBytes_ConcatAndDel(&new_result, PyBytes_FromString(result_buffer));
-        PyBytes_ConcatAndDel(&new_result, PyBytes_FromString(curr));
+        PyBytes_ConcatAndDel(&new_result,
+                             PyBytes_FromStringAndSize(curr, combined_size));
 
         if (!first_occ) {
-          PyBytes_ConcatAndDel(&new_result,
-                               PyBytes_FromString(replacement_str));
+          PyBytes_ConcatAndDel(
+              &new_result,
+              PyBytes_FromStringAndSize(replacement_str, replacement_len));
         } else {
-          PyBytes_ConcatAndDel(&new_result, PyBytes_FromString(memoized_str));
+          PyBytes_ConcatAndDel(&new_result, PyBytes_FromStringAndSize(
+                                                memoized_str, memoized_len));
         }
 
         result = new_result;
@@ -604,7 +607,8 @@ static PyObject *listize(PyObject *memory, PyObject *obj1, PyObject *obj2) {
     }
 
     PyBytes_ConcatAndDel(&new_result, PyBytes_FromString(result_buffer));
-    PyBytes_ConcatAndDel(&new_result, PyBytes_FromString(curr));
+    PyBytes_ConcatAndDel(&new_result,
+                         PyBytes_FromStringAndSize(curr, combined_size));
 
     result = new_result;
   }
@@ -671,7 +675,8 @@ static PyObject *extract_tuple(PyObject *chunks, Py_ssize_t idx) {
     }
 
     PyBytes_Concat(&new_res, res);
-    PyBytes_ConcatAndDel(&new_res, PyBytes_FromString(chunk_data));
+    PyBytes_ConcatAndDel(&new_res,
+                         PyBytes_FromStringAndSize(chunk_data, chunk_size));
 
     res = new_res;
 
@@ -731,15 +736,15 @@ static PyObject *extract_sequence(PyObject *chunks, Py_ssize_t idx) {
       }
     }
 
-    PyObject *new_res =
-        PyBytes_FromStringAndSize(NULL, PyBytes_Size(res) + chunk_size);
+    PyObject *new_res = PyBytes_FromStringAndSize(NULL, 0);
     if (!new_res) {
       Py_DECREF(res);
       return NULL;
     }
 
     PyBytes_Concat(&new_res, res);
-    PyBytes_ConcatAndDel(&new_res, PyBytes_FromString(chunk_data));
+    PyBytes_ConcatAndDel(&new_res,
+                         PyBytes_FromStringAndSize(chunk_data, chunk_size));
 
     res = new_res;
 
@@ -749,25 +754,23 @@ static PyObject *extract_sequence(PyObject *chunks, Py_ssize_t idx) {
   if (num_remains) {
     PyObject *new_res;
     if (ident[0] == EMPTY_LIST) {
-      new_res = PyBytes_FromStringAndSize(NULL, PyBytes_Size(res) + 2);
+      new_res = PyBytes_FromStringAndSize(NULL, 0);
       if (!new_res) {
         Py_DECREF(res);
         return NULL;
       }
-      memcpy(PyBytes_AsString(new_res), PyBytes_AsString(res),
-             PyBytes_Size(res));
-      memcpy(PyBytes_AsString(new_res) + PyBytes_Size(res), "]\x94", 2);
+      PyBytes_Concat(&new_res, res);
+      PyBytes_ConcatAndDel(&new_res, PyBytes_FromStringAndSize("]\x94", 2));
     } else {
-      new_res = PyBytes_FromStringAndSize(NULL, PyBytes_Size(res) + 2);
+      new_res = PyBytes_FromStringAndSize(NULL, 0);
       if (!new_res) {
         Py_DECREF(res);
         return NULL;
       }
-      memcpy(PyBytes_AsString(new_res), PyBytes_AsString(res),
-             PyBytes_Size(res));
-      memcpy(PyBytes_AsString(new_res) + PyBytes_Size(res), "}\x94", 2);
+      PyBytes_Concat(&new_res, res);
+      PyBytes_ConcatAndDel(&new_res, PyBytes_FromStringAndSize("}\x94", 2));
     }
-    Py_DECREF(res);
+
     res = new_res;
   }
 
