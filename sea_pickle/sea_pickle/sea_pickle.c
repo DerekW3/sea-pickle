@@ -415,40 +415,62 @@ static PyObject *get_memo(PyObject *chunks) {
                  1) >= 0 &&
           memcmp(PyBytes_AsString(chunk) + PyBytes_Size(chunk) - 2, &TUPLE3,
                  1) <= 0) {
+        Py_INCREF(chunks);
         PyObject *extracted_tuple = extract_tuple(chunks, i);
-        if (extracted_tuple && !PyDict_Contains(new_memo, extracted_tuple)) {
-          PyDict_SetItem(new_memo, extracted_tuple,
-                         PyLong_FromSize_t(PyDict_Size(new_memo) + 1));
+        if (!extracted_tuple) {
+          Py_DECREF(new_memo);
+          return NULL;
         }
-        Py_XDECREF(extracted_tuple);
+        if (extracted_tuple && !PyDict_Contains(new_memo, extracted_tuple)) {
+          PyObject *size = PyLong_FromSize_t(PyDict_Size(new_memo) + 1);
+          PyDict_SetItem(new_memo, extracted_tuple, size);
+          Py_DECREF(size);
+        }
+        Py_DECREF(chunks);
+        Py_DECREF(extracted_tuple);
         continue;
       }
 
       if (PyBytes_Size(chunk) > 0 &&
           memcmp(PyBytes_AsString(chunk), &MARK, 1) == 0) {
+        Py_INCREF(chunks);
         PyObject *extracted_sequence = extract_sequence(chunks, i);
+        if (!extracted_sequence) {
+          Py_DECREF(new_memo);
+          return NULL;
+        }
         if (extracted_sequence &&
             !PyDict_Contains(new_memo, extracted_sequence)) {
-          PyDict_SetItem(new_memo, extracted_sequence,
-                         PyLong_FromSize_t(PyDict_Size(new_memo) + 1));
+          PyObject *size = PyLong_FromSize_t(PyDict_Size(new_memo) + 1);
+          PyDict_SetItem(new_memo, extracted_sequence, size);
+          Py_DECREF(size);
         }
-        Py_XDECREF(extracted_sequence);
+        Py_DECREF(chunks);
+        Py_DECREF(extracted_sequence);
         continue;
       }
 
       if (!PyDict_Contains(new_memo, chunk)) {
-        PyDict_SetItem(new_memo, chunk,
-                       PyLong_FromSize_t(PyDict_Size(new_memo) + 1));
+        PyObject *size = PyLong_FromSize_t(PyDict_Size(new_memo) + 1);
+        PyDict_SetItem(new_memo, chunk, size);
+        Py_DECREF(size);
       }
     } else if (PyBytes_Size(chunk) > 1 &&
                memcmp(PyBytes_AsString(chunk) + 1, &MEMO, 1) == 0) {
+      Py_INCREF(chunks);
       PyObject *extracted_sequence = extract_sequence(chunks, i);
+      if (!extracted_sequence) {
+        Py_DECREF(new_memo);
+        return NULL;
+      }
       if (extracted_sequence &&
           !PyDict_Contains(new_memo, extracted_sequence)) {
-        PyDict_SetItem(new_memo, extracted_sequence,
-                       PyLong_FromSize_t(PyDict_Size(new_memo) + 1));
+        PyObject *size = PyLong_FromSize_t(PyDict_Size(new_memo) + 1);
+        PyDict_SetItem(new_memo, extracted_sequence, size);
+        Py_DECREF(size);
       }
-      Py_XDECREF(extracted_sequence);
+      Py_DECREF(chunks);
+      Py_DECREF(extracted_sequence);
       continue;
     }
   }
@@ -513,6 +535,7 @@ static PyObject *listize(PyObject *memory, PyObject *obj1, PyObject *obj2) {
 
     if (PyBytes_Size(memoized) > 0 && memcmp(memoized, &EMPTY_DICT, 1) == 0 &&
         memcmp(memoized, &EMPTY_LIST, 1) == 0) {
+      Py_DECREF(replacement);
       continue;
     }
 
@@ -539,13 +562,14 @@ static PyObject *listize(PyObject *memory, PyObject *obj1, PyObject *obj2) {
           return NULL;
         }
 
-        PyBytes_Concat(&new_result, PyBytes_FromString(result_buffer));
-        PyBytes_Concat(&new_result, PyBytes_FromString(curr));
+        PyBytes_ConcatAndDel(&new_result, PyBytes_FromString(result_buffer));
+        PyBytes_ConcatAndDel(&new_result, PyBytes_FromString(curr));
 
         if (!first_occ) {
-          PyBytes_Concat(&new_result, PyBytes_FromString(replacement_str));
+          PyBytes_ConcatAndDel(&new_result,
+                               PyBytes_FromString(replacement_str));
         } else {
-          PyBytes_Concat(&new_result, PyBytes_FromString(memoized_str));
+          PyBytes_ConcatAndDel(&new_result, PyBytes_FromString(memoized_str));
         }
 
         result = new_result;
@@ -564,8 +588,7 @@ static PyObject *listize(PyObject *memory, PyObject *obj1, PyObject *obj2) {
   Py_ssize_t remaining_len =
       combined_size - (curr - PyBytes_AsString(combined));
   if (remaining_len > 0) {
-    Py_ssize_t new_result_size = result_size + remaining_len;
-    PyObject *new_result = PyBytes_FromStringAndSize(NULL, new_result_size);
+    PyObject *new_result = PyBytes_FromStringAndSize(NULL, 0);
     if (!new_result) {
       free(key_array);
       Py_DECREF(keys);
@@ -573,10 +596,9 @@ static PyObject *listize(PyObject *memory, PyObject *obj1, PyObject *obj2) {
       return NULL;
     }
 
-    memcpy(PyBytes_AsString(new_result), result_buffer, result_size);
-    memcpy(PyBytes_AsString(new_result) + result_size, curr, remaining_len);
+    PyBytes_ConcatAndDel(&new_result, PyBytes_FromString(result_buffer));
+    PyBytes_ConcatAndDel(&new_result, PyBytes_FromString(curr));
 
-    Py_DECREF(result);
     result = new_result;
   }
 
@@ -615,6 +637,9 @@ static PyObject *extract_tuple(PyObject *chunks, Py_ssize_t idx) {
   int num_remains = 1;
   int curr_idx = idx;
   PyObject *res = PyBytes_FromStringAndSize(NULL, 0);
+  if (!res) {
+    return NULL;
+  }
 
   while (num_remains > 0 && curr_idx >= 0) {
     PyObject *curr_chunk = PyList_GetItem(chunks, curr_idx);
@@ -638,11 +663,9 @@ static PyObject *extract_tuple(PyObject *chunks, Py_ssize_t idx) {
       return NULL;
     }
 
-    memcpy(PyBytes_AsString(new_res), PyBytes_AsString(res), PyBytes_Size(res));
-    memcpy(PyBytes_AsString(new_res) + PyBytes_Size(res), chunk_data,
-           chunk_size);
+    PyBytes_Concat(&new_res, res);
+    PyBytes_ConcatAndDel(&new_res, PyBytes_FromString(chunk_data));
 
-    Py_DECREF(res);
     res = new_res;
 
     curr_idx -= 1;
@@ -658,6 +681,9 @@ static PyObject *extract_sequence(PyObject *chunks, Py_ssize_t idx) {
   const char *ident = PyBytes_AsString(PyList_GetItem(chunks, idx));
   int curr_idx = idx;
   PyObject *res = PyBytes_FromStringAndSize(NULL, 0);
+  if (!res) {
+    return NULL;
+  }
 
   while (num_remains > 0 && curr_idx < num_chunks) {
     PyObject *curr_chunk = PyList_GetItem(chunks, curr_idx);
@@ -693,7 +719,7 @@ static PyObject *extract_sequence(PyObject *chunks, Py_ssize_t idx) {
       }
       num_remains -= num_reduce;
     } else if (chunk_data[0] == MARK) {
-      if (chunk_size >= 3 && chunk_data[chunk_size - 3] == TUPLE) {
+      if (chunk_size >= 2 && chunk_data[chunk_size - 2] == TUPLE) {
         num_remains -= 1;
       }
     }
@@ -705,11 +731,9 @@ static PyObject *extract_sequence(PyObject *chunks, Py_ssize_t idx) {
       return NULL;
     }
 
-    memcpy(PyBytes_AsString(new_res), PyBytes_AsString(res), PyBytes_Size(res));
-    memcpy(PyBytes_AsString(new_res) + PyBytes_Size(res), chunk_data,
-           chunk_size);
+    PyBytes_Concat(&new_res, res);
+    PyBytes_ConcatAndDel(&new_res, PyBytes_FromString(chunk_data));
 
-    Py_DECREF(res);
     res = new_res;
 
     curr_idx += 1;
