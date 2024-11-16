@@ -530,12 +530,7 @@ static PyObject *listize(PyObject *memory, PyObject *obj1, PyObject *obj2) {
       while ((start = strstr(start, memoized_str)) != NULL) {
         Py_ssize_t seg_length = start - curr;
 
-        Py_ssize_t new_res_size = result_size + seg_length + replacement_len;
-        if (first_occ) {
-          new_res_size -= replacement_len;
-          new_res_size += memoized_len;
-        }
-        PyObject *new_result = PyBytes_FromStringAndSize(NULL, new_res_size);
+        PyObject *new_result = PyBytes_FromStringAndSize(NULL, 0);
         if (!new_result) {
           Py_DECREF(replacement);
           free(key_array);
@@ -544,20 +539,18 @@ static PyObject *listize(PyObject *memory, PyObject *obj1, PyObject *obj2) {
           return NULL;
         }
 
-        memcpy(PyBytes_AsString(new_result), result_buffer, result_size);
-        memcpy(PyBytes_AsString(new_result) + result_size, curr, seg_length);
+        PyBytes_Concat(&new_result, PyBytes_FromString(result_buffer));
+        PyBytes_Concat(&new_result, PyBytes_FromString(curr));
+
         if (!first_occ) {
-          memcpy(PyBytes_AsString(new_result) + result_size + seg_length,
-                 replacement_str, replacement_len);
+          PyBytes_Concat(&new_result, PyBytes_FromString(replacement_str));
         } else {
-          memcpy(PyBytes_AsString(new_result) + result_size + seg_length,
-                 memoized_str, memoized_len);
+          PyBytes_Concat(&new_result, PyBytes_FromString(memoized_str));
         }
 
         Py_DECREF(result);
         result = new_result;
         result_buffer = PyBytes_AsString(result);
-        result_size = new_res_size;
 
         if (first_occ) {
           first_occ = 0;
