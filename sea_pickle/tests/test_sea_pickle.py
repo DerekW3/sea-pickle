@@ -349,21 +349,21 @@ def test_no_memo():
         partial_pickle({"a": 1, "b": 2}), partial_pickle({"c": 3, "d": 4}), True, True
     ) == pickle.dumps([{"a": 1, "b": 2}, {"c": 3, "d": 4}])
 
-    # assert merge_partials(
-    #     partial_pickle([[1, 2], [3, 4]]),
-    #     partial_pickle([[5, 6], [7, 8]]),
-    #     True,
-    #     True,
-    # ) == pickle.dumps([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
+    assert merge_partials(
+        partial_pickle([[1, 2], [3, 4]]),
+        partial_pickle([[5, 6], [7, 8]]),
+        True,
+        True,
+    ) == pickle.dumps([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
 
     # assert merge_partials(
     #     partial_pickle([1, 2.5, 3]), partial_pickle([4.0, 5, 6]), True, True
     # ) == pickle.dumps([[1, 2.5, 3], [4.0, 5, 6]])
 
-    # assert merge_partials(
-    #     partial_pickle(b"foo"), partial_pickle(b"bar"), True
-    # ) == pickle.dumps(b"foobar")
+    assert merge_partials(
+        partial_pickle(b"foo"), partial_pickle(b"bar"), True
+    ) == pickle.dumps(b"foobar")
 
-    # assert merge_partials(
-    #     partial_pickle(42), partial_pickle(3.14), True
-    # ) == pickle.dumps([42, 3.14])
+    assert merge_partials(
+        partial_pickle(42), partial_pickle(3.14), True
+    ) == pickle.dumps([42, 3.14])

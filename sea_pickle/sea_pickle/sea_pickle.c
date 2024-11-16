@@ -548,7 +548,6 @@ static PyObject *listize(PyObject *memory, PyObject *obj1, PyObject *obj2) {
           PyBytes_Concat(&new_result, PyBytes_FromString(memoized_str));
         }
 
-        Py_DECREF(result);
         result = new_result;
         result_buffer = PyBytes_AsString(result);
 
@@ -1194,6 +1193,7 @@ static PyObject *encode_tuple(PyObject *obj) {
     Py_INCREF(item);
     PyObject *encoded = recurse_pickle(item);
     Py_DECREF(item);
+    item = NULL;
     if (!encoded) {
       Py_DECREF(result);
       return NULL;
@@ -1266,6 +1266,7 @@ static PyObject *encode_list(PyObject *obj) {
         Py_INCREF(item);
         PyObject *encoded_item = recurse_pickle(item);
         Py_DECREF(item);
+        item = NULL;
         if (!encoded_item) {
           Py_DECREF(result);
           return NULL;
@@ -1287,6 +1288,7 @@ static PyObject *encode_list(PyObject *obj) {
       Py_INCREF(item);
       PyObject *encoded_item = recurse_pickle(item);
       Py_DECREF(item);
+      item = NULL;
       if (!encoded_item) {
         Py_DECREF(result);
         return NULL;
@@ -1350,6 +1352,8 @@ static PyObject *encode_dict(PyObject *obj) {
 
         PyObject *key = PyTuple_GetItem(kv_pair, 0);
         PyObject *value = PyTuple_GetItem(kv_pair, 1);
+        Py_DECREF(kv_pair);
+        kv_pair = NULL;
         if (!key || !value) {
           Py_DECREF(result);
           Py_DECREF(dict_items);
@@ -1362,6 +1366,8 @@ static PyObject *encode_dict(PyObject *obj) {
         PyObject *encoded_value = recurse_pickle(value);
         Py_DECREF(key);
         Py_DECREF(value);
+        key = NULL;
+        value = NULL;
         if (!encoded_key || !encoded_value) {
           Py_DECREF(result);
           Py_DECREF(dict_items);
@@ -1372,11 +1378,13 @@ static PyObject *encode_dict(PyObject *obj) {
 
         PyObject *encoded_one = PyBytes_FromObject(encoded_key);
         PyObject *encoded_two = PyBytes_FromObject(encoded_value);
+        Py_DECREF(encoded_key);
+        Py_DECREF(encoded_value);
+        encoded_key = NULL;
+        encoded_value = NULL;
         if (!encoded_one || !encoded_two) {
           Py_DECREF(result);
           Py_DECREF(dict_items);
-          Py_DECREF(encoded_key);
-          Py_DECREF(encoded_value);
           Py_XDECREF(encoded_one);
           Py_XDECREF(encoded_two);
           return NULL;
@@ -1384,9 +1392,6 @@ static PyObject *encode_dict(PyObject *obj) {
 
         PyBytes_ConcatAndDel(&result, encoded_one);
         PyBytes_ConcatAndDel(&result, encoded_two);
-
-        Py_DECREF(encoded_key);
-        Py_DECREF(encoded_value);
       }
       PyBytes_ConcatAndDel(
           &result, PyBytes_FromStringAndSize((const char *)&SETITEMS, 1));
@@ -1400,14 +1405,22 @@ static PyObject *encode_dict(PyObject *obj) {
 
       PyObject *key = PyTuple_GetItem(kv_pair, 0);
       PyObject *value = PyTuple_GetItem(kv_pair, 1);
+      Py_DECREF(kv_pair);
+      kv_pair = NULL;
       if (!key || !value) {
         Py_DECREF(result);
         Py_DECREF(dict_items);
         return NULL;
       }
 
+      Py_INCREF(key);
+      Py_INCREF(value);
       PyObject *encoded_key = recurse_pickle(key);
       PyObject *encoded_value = recurse_pickle(value);
+      Py_DECREF(key);
+      Py_DECREF(value);
+      key = NULL;
+      value = NULL;
       if (!encoded_key || !encoded_value) {
         Py_DECREF(result);
         Py_DECREF(dict_items);
@@ -1418,11 +1431,13 @@ static PyObject *encode_dict(PyObject *obj) {
 
       PyObject *encoded_one = PyBytes_FromObject(encoded_key);
       PyObject *encoded_two = PyBytes_FromObject(encoded_value);
+      Py_DECREF(encoded_key);
+      Py_DECREF(encoded_value);
+      encoded_key = NULL;
+      encoded_value = NULL;
       if (!encoded_one || !encoded_two) {
         Py_DECREF(result);
         Py_DECREF(dict_items);
-        Py_DECREF(encoded_key);
-        Py_DECREF(encoded_value);
         Py_XDECREF(encoded_one);
         Py_XDECREF(encoded_two);
         return NULL;
@@ -1432,9 +1447,6 @@ static PyObject *encode_dict(PyObject *obj) {
       PyBytes_ConcatAndDel(&result, encoded_two);
       PyBytes_ConcatAndDel(
           &result, PyBytes_FromStringAndSize((const char *)&SETITEM, 1));
-
-      Py_DECREF(encoded_key);
-      Py_DECREF(encoded_value);
     }
 
     idx += n;
