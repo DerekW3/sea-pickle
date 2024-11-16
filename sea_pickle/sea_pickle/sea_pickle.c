@@ -266,23 +266,32 @@ PyObject *merge_partials(PyObject *self, PyObject *args) {
     }
 
     PyObject *chunks = no_memo ? PyList_New(0) : get_chunks(concatted);
-    PyObject *temp_memo = no_memo ? PyDict_New() : get_memo(chunks);
-
-    if (!chunks || !temp_memo) {
+    if (chunks == NULL) {
       Py_DECREF(result);
+      Py_DECREF(concatted);
+      return NULL;
+    }
+    Py_INCREF(chunks);
+    PyObject *temp_memo = no_memo ? PyDict_New() : get_memo(chunks);
+    Py_DECREF(chunks);
+    if (!temp_memo) {
+      Py_DECREF(result);
+      Py_DECREF(concatted);
+      Py_DECREF(chunks);
       return NULL;
     }
 
     if (PyBytes_Size(obj1) > 0 && PyBytes_Size(obj2) > 0 && frame_info) {
+      Py_INCREF(temp_memo);
       result = listize(temp_memo, obj1, obj2);
+      Py_DECREF(temp_memo);
     } else {
       result = concatted;
       PyBytes_ConcatAndDel(&result, PyBytes_FromString("."));
     }
 
-    Py_XDECREF(concatted);
-    Py_XDECREF(chunks);
-    Py_XDECREF(temp_memo);
+    Py_DECREF(concatted);
+    Py_DECREF(temp_memo);
   }
 
   PyObject *protocol_bytes =
@@ -303,8 +312,8 @@ PyObject *merge_partials(PyObject *self, PyObject *args) {
     buffer[7] = (size >> 56) & 0xFF;
 
     frame_bytes = PyBytes_FromString("\x95");
-    PyBytes_Concat(&frame_bytes,
-                   PyBytes_FromStringAndSize((const char *)buffer, 8));
+    PyBytes_ConcatAndDel(&frame_bytes,
+                         PyBytes_FromStringAndSize((const char *)buffer, 8));
   } else {
     frame_bytes = PyBytes_FromString("");
   }
@@ -373,14 +382,12 @@ static PyObject *get_chunks(PyObject *obj) {
     }
 
     PyObject *chunk = PyBytes_FromStringAndSize(data + left, right - left);
-
     if (!chunk) {
-      fflush(stdout);
       Py_DECREF(chunks);
       return NULL;
     }
     PyList_Append(chunks, chunk);
-    Py_XDECREF(chunk);
+    Py_DECREF(chunk);
     left = right;
     right++;
   }
