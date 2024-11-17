@@ -145,15 +145,16 @@ Default behavior depends on the type of pickled objects:
     ```
 
 >[!WARNING]
-> merge_partials does *NOT* support memoization. A lot of time was dedicated to it, and I might implement it in the future, but memoization is not very memory safe and is actually slower than the base pickle algorithm. This is explained further in [Algorithm Analysis](#algorithm-analysis) does this mean for the end user? You cannot merge_partials for the following objects:
+> merge_partials does *NOT* support memoization. A lot of time was dedicated to it, and I might implement it in the future, but memoization is not very memory safe and is actually slower than the base pickle algorithm. This is explained further in [Algorithm Analysis](#algorithm-analysis). What does this mean for the end user? You cannot merge_partials for the following objects:
 > ```python
-> # sequences with repetitive string-like entries
+> # sequences with repetitive string-like entries (this applies recursively as well)
 > ["hello", "I", "dont", "repeat"] -> correct usage
-> ["hello", "I", "want", "to", "be", "memoized"] -> incorrect usage
->
-> # sequences with repetitive sequence entries
+> ["hello", "I", "want", "to", "be", "memoized", "to", "bytes"] -> incorrect usage
+>                         ^ first usage           ^ second usage
+> 
+> # sequences with repetitive tuple entries (lists and dictionaries are fine though)
 > [(1, 2, 3), (4, 5, 6)] -> correct usage
-> [("i", "l", "i"), ("i", "l", "i")] -> incorrect usage
+> [(1, 2, 3), (1, 2, 3)] -> incorrect usage
 > ```
 ## Design Decisions
 The current implementation utilizes setuptools (which is the standard), pytest for testing (cleaner than unittest), and C for the extension module. The module was designed in such a way to favor parallel programming capabilities, hence the *frame_info* tuple which allows for a large list to be subdivided, and then sequentially merged, all in $O(n)$ complexity, allowing for quick matrix encoding. String-like objects are automatically merged, meaning that the efficiency is essentially equal to that of the base pickle module, but large strings can be divided into smaller units and disbatched accordingly. To learn more about the specifics of the algorithm refer to [Algorithm Analysis](#algorithm-analysis).
