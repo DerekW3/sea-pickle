@@ -255,15 +255,14 @@ PyObject *merge_partials(PyObject *self, PyObject *args) {
         merge_bytes(obj1, PyBytes_FromStringAndSize(&identifier_1_byte, 1),
                     obj2, PyBytes_FromStringAndSize(&identifier_2_byte, 1));
   } else {
-    char *str1 = PyBytes_AsString(obj1);
-    char *str2 = PyBytes_AsString(obj2);
-    strcat(str1, str2);
-
-    PyObject *concatted = PyBytes_FromString(str1);
+    PyObject *concatted = PyBytes_FromStringAndSize(NULL, 0);
     if (!concatted) {
       Py_DECREF(result);
       return NULL;
     }
+
+    PyBytes_Concat(&concatted, obj1);
+    PyBytes_Concat(&concatted, obj2);
 
     PyObject *chunks = no_memo ? PyList_New(0) : get_chunks(concatted);
     if (chunks == NULL) {
@@ -280,6 +279,8 @@ PyObject *merge_partials(PyObject *self, PyObject *args) {
       Py_DECREF(chunks);
       return NULL;
     }
+
+    PyObject_Print(concatted, stdout, 0);
 
     if (PyBytes_Size(obj1) > 0 && PyBytes_Size(obj2) > 0 && frame_info) {
       Py_INCREF(temp_memo);
@@ -299,7 +300,7 @@ PyObject *merge_partials(PyObject *self, PyObject *args) {
 
   PyObject *frame_bytes;
   unsigned long long size = (unsigned long long)PyBytes_Size(result);
-  if (PyBytes_Size(result) >= 4 && frame_info) {
+  if (size >= 4 && frame_info) {
     unsigned char buffer[8];
 
     buffer[0] = (size & 0xFF);
@@ -640,6 +641,8 @@ int compare_length(const void *a, const void *b) {
 
   Py_ssize_t len_a = PyBytes_Size(obj_a);
   Py_ssize_t len_b = PyBytes_Size(obj_b);
+  Py_DECREF(obj_a);
+  Py_DECREF(obj_b);
 
   return (len_a < len_b) - (len_a > len_b);
 }
