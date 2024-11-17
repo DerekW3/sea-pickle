@@ -166,3 +166,4 @@ merge_partials runs in $O(1)$ time complexity and memory due to the lack of need
 Therefore, I made the decision to leave that type of encoding to the base pickling algorithm, and instead focus on the encoding where this algorithm offers major efficiency boosts with parallelization, those of large string-likes and sequences of 2D or greater.
 
 ## Future Possibilities
+I would like to implement a future mediary method which could take in any type of python object, determine it's type and size, and disbatch the work out either to partial_pickle and merge_partials with an optimized number of threads/processes or to the base pickling algorithm (where it is more efficient), allowing for a simpler interface for users just to import that one function and to expect it to work the same way that pickle.dumps does.
