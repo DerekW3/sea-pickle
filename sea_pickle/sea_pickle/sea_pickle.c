@@ -13,7 +13,6 @@
 #include <pyerrors.h>
 #include <pylifecycle.h>
 #include <pyport.h>
-#include <setobject.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -271,7 +270,7 @@ PyObject *merge_partials(PyObject *self, PyObject *args) {
       Py_DECREF(concatted);
       return NULL;
     }
-
+    Py_INCREF(chunks);
     PyObject *temp_memo = no_memo ? PyDict_New() : get_memo(chunks);
     Py_DECREF(chunks);
     if (!temp_memo) {
@@ -292,6 +291,7 @@ PyObject *merge_partials(PyObject *self, PyObject *args) {
 
     Py_DECREF(concatted);
     Py_DECREF(temp_memo);
+    Py_DECREF(chunks);
   }
 
   PyObject *protocol_bytes =
@@ -401,14 +401,8 @@ static PyObject *get_memo(PyObject *chunks) {
     return NULL;
   }
 
-  PyObject *new_memo = PyList_New(0);
+  PyObject *new_memo = PyDict_New();
   if (!new_memo) {
-    return NULL;
-  }
-
-  PyObject *cont = PySet_New(NULL);
-  if (!cont) {
-    Py_DECREF(new_memo);
     return NULL;
   }
 
@@ -428,13 +422,12 @@ static PyObject *get_memo(PyObject *chunks) {
         PyObject *extracted_tuple = extract_tuple(chunks, i);
         if (!extracted_tuple) {
           Py_DECREF(new_memo);
-          Py_DECREF(cont);
           return NULL;
         }
-
-        if (!PySet_Contains(cont, extracted_tuple)) {
-          PyList_Append(new_memo, extracted_tuple);
-          PySet_Add(cont, extracted_tuple);
+        if (!PyDict_Contains(new_memo, extracted_tuple)) {
+          PyObject *val = PyLong_FromSize_t(PyDict_Size(new_memo) + 1);
+          PyDict_SetItem(new_memo, extracted_tuple, val);
+          Py_DECREF(val);
         }
         Py_DECREF(extracted_tuple);
         continue;
@@ -444,33 +437,31 @@ static PyObject *get_memo(PyObject *chunks) {
         PyObject *extracted_sequence = extract_sequence(chunks, i);
         if (!extracted_sequence) {
           Py_DECREF(new_memo);
-          Py_DECREF(cont);
           return NULL;
         }
-
-        if (!PySet_Contains(cont, extracted_sequence)) {
-          PyList_Append(new_memo, extracted_sequence);
-          PySet_Add(cont, extracted_sequence);
+        if (extracted_sequence &&
+            !PyDict_Contains(new_memo, extracted_sequence)) {
+          PyDict_SetItem(new_memo, extracted_sequence,
+                         PyLong_FromSize_t(PyDict_Size(new_memo) + 1));
         }
         Py_DECREF(extracted_sequence);
         continue;
       }
 
-      if (!PySet_Contains(cont, chunk)) {
-        PyList_Append(new_memo, chunk);
-        PySet_Add(cont, chunk);
+      if (!PyDict_Contains(new_memo, chunk)) {
+        PyDict_SetItem(new_memo, chunk,
+                       PyLong_FromSize_t(PyDict_Size(new_memo) + 1));
       }
     } else if (len > 1 && memcmp(str + 1, &MEMO, 1) == 0) {
       PyObject *extracted_sequence = extract_sequence(chunks, i);
       if (!extracted_sequence) {
         Py_DECREF(new_memo);
-        Py_DECREF(cont);
         return NULL;
       }
-
-      if (!PySet_Contains(cont, extracted_sequence)) {
-        PyList_Append(new_memo, extracted_sequence);
-        PySet_Add(cont, extracted_sequence);
+      if (extracted_sequence &&
+          !PyDict_Contains(new_memo, extracted_sequence)) {
+        PyDict_SetItem(new_memo, extracted_sequence,
+                       PyLong_FromSize_t(PyDict_Size(new_memo) + 1));
       }
       Py_DECREF(extracted_sequence);
       continue;
