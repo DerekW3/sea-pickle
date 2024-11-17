@@ -349,3 +349,48 @@ def test_no_memo():
     assert merge_partials(partial_pickle(42), partial_pickle(3.14)) == pickle.dumps(
         [42, 3.14]
     )
+
+
+def test_no_frame_info():
+    assert merge_partials(
+        partial_pickle([1, 2, 3]),
+        merge_partials(partial_pickle([4, 5, 6]), partial_pickle([7, 8, 9]), False),
+    ) == pickle.dumps([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+
+    assert merge_partials(
+        partial_pickle([10, 20, 30]),
+        merge_partials(partial_pickle([40, 50]), partial_pickle([60, 70]), False),
+    ) == pickle.dumps([[10, 20, 30], [40, 50], [60, 70]])
+
+    assert merge_partials(
+        partial_pickle(("apple", "banana")),
+        merge_partials(
+            partial_pickle(("cherry", "date")), partial_pickle(("fig", "grape")), False
+        ),
+    ) == pickle.dumps([("apple", "banana"), ("cherry", "date"), ("fig", "grape")])
+
+    assert merge_partials(
+        partial_pickle({"x": 1, "y": 2}),
+        merge_partials(
+            partial_pickle({"z": 3}), partial_pickle({"a": 4, "b": 5}), False
+        ),
+    ) == pickle.dumps([{"x": 1, "y": 2}, {"z": 3}, {"a": 4, "b": 5}])
+
+    assert merge_partials(
+        partial_pickle(["one", "two"]),
+        merge_partials(
+            partial_pickle(["three", "four"]), partial_pickle(["five", "six"]), False
+        ),
+    ) == pickle.dumps([["one", "two"], ["three", "four"], ["five", "six"]])
+
+    assert merge_partials(
+        partial_pickle([100, 200]),
+        merge_partials(partial_pickle((300, 400)), partial_pickle([500, 600]), False),
+    ) == pickle.dumps([[100, 200], (300, 400), [500, 600]])
+
+    assert merge_partials(
+        partial_pickle(("red", "green")),
+        merge_partials(
+            partial_pickle({"blue": "sky"}), partial_pickle(("yellow", "purple")), False
+        ),
+    ) == pickle.dumps([("red", "green"), {"blue": "sky"}, ("yellow", "purple")])

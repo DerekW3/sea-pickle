@@ -205,7 +205,7 @@ PyObject *merge_partials(PyObject *self, PyObject *args) {
     return NULL;
   }
 
-  if (PyBytes_Size(obj1) == 0 && PyBytes_Size(obj2) == 0) {
+  if (PyBytes_Size(obj1) == 0 || PyBytes_Size(obj2) == 0) {
     PyErr_SetString(PyExc_ValueError, "Invalid Input: Un-mergable objects");
     return NULL;
   }
@@ -223,7 +223,7 @@ PyObject *merge_partials(PyObject *self, PyObject *args) {
     }
   }
   int identifier_2_count = 0;
-  for (Py_ssize_t i = 0; i < PyBytes_Size(obj1); i++) {
+  for (Py_ssize_t i = 0; i < PyBytes_Size(obj2); i++) {
     if (identifier_2[i] == identifier_2_byte) {
       identifier_2_count++;
     }
@@ -267,8 +267,9 @@ PyObject *merge_partials(PyObject *self, PyObject *args) {
     Py_DECREF(concatted);
   }
 
-  PyObject *protocol_bytes =
-      frame_info ? PyBytes_FromString("\x80\x04") : PyBytes_FromString("");
+  PyObject *protocol_bytes = frame_info
+                                 ? PyBytes_FromStringAndSize("\x80\x04", 2)
+                                 : PyBytes_FromStringAndSize("", 0);
 
   PyObject *frame_bytes;
   unsigned long long size = (unsigned long long)PyBytes_Size(result);
@@ -284,11 +285,11 @@ PyObject *merge_partials(PyObject *self, PyObject *args) {
     buffer[6] = (size >> 48) & 0xFF;
     buffer[7] = (size >> 56) & 0xFF;
 
-    frame_bytes = PyBytes_FromString("\x95");
+    frame_bytes = PyBytes_FromStringAndSize("\x95", 1);
     PyBytes_ConcatAndDel(&frame_bytes,
                          PyBytes_FromStringAndSize((const char *)buffer, 8));
   } else {
-    frame_bytes = PyBytes_FromString("");
+    frame_bytes = PyBytes_FromStringAndSize("", 0);
   }
 
   if (!frame_info) {
