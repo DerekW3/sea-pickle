@@ -280,8 +280,6 @@ PyObject *merge_partials(PyObject *self, PyObject *args) {
       return NULL;
     }
 
-    PyObject_Print(concatted, stdout, 0);
-
     if (PyBytes_Size(obj1) > 0 && PyBytes_Size(obj2) > 0 && frame_info) {
       Py_INCREF(temp_memo);
       result = listize(temp_memo, obj1, obj2);
@@ -293,6 +291,7 @@ PyObject *merge_partials(PyObject *self, PyObject *args) {
 
     Py_DECREF(concatted);
     Py_DECREF(temp_memo);
+    Py_DECREF(chunks);
   }
 
   PyObject *protocol_bytes =
@@ -423,7 +422,6 @@ static PyObject *get_memo(PyObject *chunks) {
                  1) >= 0 &&
           memcmp(PyBytes_AsString(chunk) + PyBytes_Size(chunk) - 2, &TUPLE3,
                  1) <= 0) {
-        Py_INCREF(chunks);
         PyObject *extracted_tuple = extract_tuple(chunks, i);
         if (!extracted_tuple) {
           Py_DECREF(new_memo);
@@ -434,14 +432,12 @@ static PyObject *get_memo(PyObject *chunks) {
           PyDict_SetItem(new_memo, extracted_tuple, size);
           Py_DECREF(size);
         }
-        Py_DECREF(chunks);
         Py_DECREF(extracted_tuple);
         continue;
       }
 
       if (PyBytes_Size(chunk) > 0 &&
           memcmp(PyBytes_AsString(chunk), &MARK, 1) == 0) {
-        Py_INCREF(chunks);
         PyObject *extracted_sequence = extract_sequence(chunks, i);
         if (!extracted_sequence) {
           Py_DECREF(new_memo);
@@ -453,7 +449,6 @@ static PyObject *get_memo(PyObject *chunks) {
           PyDict_SetItem(new_memo, extracted_sequence, size);
           Py_DECREF(size);
         }
-        Py_DECREF(chunks);
         Py_DECREF(extracted_sequence);
         continue;
       }
@@ -465,7 +460,6 @@ static PyObject *get_memo(PyObject *chunks) {
       }
     } else if (PyBytes_Size(chunk) > 1 &&
                memcmp(PyBytes_AsString(chunk) + 1, &MEMO, 1) == 0) {
-      Py_INCREF(chunks);
       PyObject *extracted_sequence = extract_sequence(chunks, i);
       if (!extracted_sequence) {
         Py_DECREF(new_memo);
@@ -477,7 +471,6 @@ static PyObject *get_memo(PyObject *chunks) {
         PyDict_SetItem(new_memo, extracted_sequence, size);
         Py_DECREF(size);
       }
-      Py_DECREF(chunks);
       Py_DECREF(extracted_sequence);
       continue;
     }

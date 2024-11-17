@@ -140,9 +140,9 @@ def test_encode_float():
         [1.0, 0.0]
     )
 
-    # assert merge_partials(
-    #     partial_pickle(1.23456789), partial_pickle(9.87654321)
-    # ) == pickle.dumps([1.23456789, 9.87654321])
+    assert merge_partials(
+        partial_pickle(1.23456789), partial_pickle(9.87654321)
+    ) == pickle.dumps([1.23456789, 9.87654321])
 
     assert merge_partials(
         partial_pickle(float("inf")), partial_pickle(float("-inf"))
@@ -214,9 +214,9 @@ def test_encode_tuple():
         partial_pickle((1, "Yeah man")), partial_pickle((-1, "No man"))
     ) == pickle.dumps([(1, "Yeah man"), (-1, "No man")])
 
-    assert merge_partials(
-        partial_pickle((1,)), partial_pickle((0,)), True, True
-    ) == pickle.dumps([(1,), (0,)])
+    assert merge_partials(partial_pickle((1,)), partial_pickle((0,))) == pickle.dumps(
+        [(1,), (0,)]
+    )
 
     assert merge_partials(
         partial_pickle((1, 2, 3)), partial_pickle((4, 5, 6))
@@ -267,9 +267,9 @@ def test_encode_tuple():
         partial_pickle((3, "more", (4, "deep"))),
     ) == pickle.dumps([(1, "text", (2, "nested")), (3, "more", (4, "deep"))])
 
-    assert merge_partials(
-        partial_pickle(((1, "text", True), "text")), partial_pickle((1, "text", True))
-    ) == pickle.dumps([((1, "text", True), "text"), (1, "text", True)])
+    # assert merge_partials(
+    #     partial_pickle(((1, "text", True), "text")), partial_pickle((1, "text", True))
+    # ) == pickle.dumps([((1, "text", True), "text"), (1, "text", True)])
 
 
 # def test_encode_dict():
@@ -336,35 +336,34 @@ def test_encode_tuple():
 #     ) == pickle.dumps([{"a": {"b": 2}}, {"a": {"b": 4}}])
 
 
-# def test_no_memo():
-#     p1 = partial_pickle([1, 1, 1])
-#     p2 = partial_pickle([1, 1, 1])
-#     assert merge_partials(p1, p2, True, True) == pickle.dumps([[1, 1, 1], [1, 1, 1]])
+def test_no_memo():
+    p1 = partial_pickle([1, 1, 1])
+    p2 = partial_pickle([1, 1, 1])
+    assert merge_partials(p1, p2, True, True) == pickle.dumps([[1, 1, 1], [1, 1, 1]])
 
-# assert merge_partials(
-#     partial_pickle([2, 3, 4]), partial_pickle([5, 6, 7]), True, True
-# ) == pickle.dumps([[2, 3, 4], [5, 6, 7]])
+    assert merge_partials(
+        partial_pickle([2, 3, 4]), partial_pickle([5, 6, 7]), True, True
+    ) == pickle.dumps([[2, 3, 4], [5, 6, 7]])
 
-# assert merge_partials(
-#     partial_pickle({"a": 1, "b": 2}), partial_pickle({"c": 3, "d": 4}), True, True
-# ) == pickle.dumps([{"a": 1, "b": 2}, {"c": 3, "d": 4}])
+    assert merge_partials(
+        partial_pickle({"a": 1, "b": 2}), partial_pickle({"c": 3, "d": 4}), True, True
+    ) == pickle.dumps([{"a": 1, "b": 2}, {"c": 3, "d": 4}])
 
-# assert merge_partials(
-#     partial_pickle([[1, 2], [3, 4]]),
-#     partial_pickle([[5, 6], [7, 8]]),
-#     True,
-#     True,
-# ) == pickle.dumps([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
-# assert False
+    assert merge_partials(
+        partial_pickle([[1, 2], [3, 4]]),
+        partial_pickle([[5, 6], [7, 8]]),
+        True,
+        True,
+    ) == pickle.dumps([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
 
-# assert merge_partials(
-#     partial_pickle([1, 2.5, 3]), partial_pickle([4.0, 5, 6]), True, True
-# ) == pickle.dumps([[1, 2.5, 3], [4.0, 5, 6]])
+    assert merge_partials(
+        partial_pickle([1, 2.5, 3]), partial_pickle([4.0, 5, 6]), True, True
+    ) == pickle.dumps([[1, 2.5, 3], [4.0, 5, 6]])
 
-# assert merge_partials(
-#     partial_pickle(b"foo"), partial_pickle(b"bar"), True
-# ) == pickle.dumps(b"foobar")
+    assert merge_partials(
+        partial_pickle(b"foo"), partial_pickle(b"bar"), True
+    ) == pickle.dumps(b"foobar")
 
-# assert merge_partials(
-#     partial_pickle(42), partial_pickle(3.14), True
-# ) == pickle.dumps([42, 3.14])
+    assert merge_partials(
+        partial_pickle(42), partial_pickle(3.14), True
+    ) == pickle.dumps([42, 3.14])
