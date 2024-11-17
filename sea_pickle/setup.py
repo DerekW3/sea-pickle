@@ -1,10 +1,6 @@
 from setuptools import Extension, setup
 
-ext_modules = [
-    Extension(
-        "sea_pickle", ["sea_pickle/sea_pickle.c"], extra_compile_args=["-g", "-O0"]
-    )
-]
+ext_modules = [Extension("sea_pickle", ["sea_pickle/sea_pickle.c"])]
 
 setup(
     name="sea_pickle",
